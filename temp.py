@@ -1,5 +1,5 @@
 from eth_hash.auto import keccak
-from keccak_utils import to_bytes, to_ints
+from keccak_utils import to_ints
 
 values = [
     160624099442958928356030312786067501435,
