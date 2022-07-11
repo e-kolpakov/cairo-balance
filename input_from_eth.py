@@ -33,7 +33,7 @@ def read_from_eth():
 
     return {
         'accounts': [
-            { "address": account.address, "balance": account.balance}
+            { "address": f"0x{account.address:020x}", "balance": account.balance}
             for account in accounts
         ],
         "merkle_tree_root": {

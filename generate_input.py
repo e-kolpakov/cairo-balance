@@ -75,7 +75,7 @@ class AddressRange(Range):
         elif mode == RangeMode.WIDE:
             return cls(0, int(1e15))
         elif mode == RangeMode.ETH:
-            return cls(0, 2**40)  # actually 2**160, this is for testing purposes
+            return cls(0, 2**160)
         elif mode == RangeMode.UNRESTRICTED:
             return cls(0, sys.maxsize)
 
@@ -153,23 +153,15 @@ def generate_many(arguments):
         accounts.append(account)
         existing_addresses.add(account.address)
 
-    # accounts = [
-    #     Account(2**79 + 2**16, int(2e18)),
-    #     Account(2 ** 16, int(1e18)),
-    #     Account(0, 0),
-    #     Account(19, 1256),
-    # ]
-    # print(accounts)
-
     tree_builder = TopDownBuilder(accounts)
     tree_root = tree_builder.build()
     # print(tree_root.print(0))
-    print("Total value", sum([account.balance for account in accounts]))
+    print(f"Total value {sum([account.balance for account in accounts])} wei" )
     print("Merkle tree root", tree_root.print_hash(tree_root.hash()))
 
     return {
         'accounts': [
-            { "address": account.address, "balance": account.balance}
+            { "address": f"0x{account.address:020x}", "balance": account.balance}
             for account in accounts
         ],
         "merkle_tree_root": {

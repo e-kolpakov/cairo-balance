@@ -1,6 +1,6 @@
 #!/bin/bash
 echo "Generating input"
-python generate_input.py -c 10 -a eth -v eth
+python generate_input.py -c 1000 -a eth -v eth
 echo "Compiling cairo program..."
 cairo-compile balance_sum_prover.cairo --proof_mode --output balance_sum_prover.compiled.json
 echo "Running cairo program..."

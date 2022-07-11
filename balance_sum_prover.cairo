@@ -43,11 +43,9 @@ func verify_and_calc_account_balance_sum{range_check_ptr}(accounts: Account*, si
     if size == 0:
         return (res=acc)
     end
-    let address = accounts[0].address
     let balance = accounts[0].balance
-    assert [range_check_ptr] = address # verifies that 0 <= balance <= 2**128
-    assert [range_check_ptr+1] = balance # verifies that 0 <= balance <= 2**128
-    let range_check_ptr = range_check_ptr + 2
+    assert [range_check_ptr] = balance # verifies that 0 <= balance <= 2**128
+    let range_check_ptr = range_check_ptr + 1
     return verify_and_calc_account_balance_sum(
         accounts = accounts + Account.SIZE,
         size = size - 1,
@@ -69,7 +67,7 @@ func main{output_ptr : felt*, range_check_ptr, bitwise_ptr: BitwiseBuiltin*}():
 
         ids.accounts = accounts = segments.add()
         for idx, account in enumerate(accounts_input):
-            memory[accounts + (2*idx) + ADDRESS_OFFSET] = account["address"]
+            memory[accounts + (2*idx) + ADDRESS_OFFSET] = int(account["address"], 0)
             memory[accounts + (2*idx) + BALANCE_OFFSET] = account["balance"]
 
         ids.size = len(accounts_input)
