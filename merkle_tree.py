@@ -45,32 +45,6 @@ class MerkleTreeInnerNode(MerkleTreeNode):
         right = self.right.print(depth+1)
         return f"{self_print}\n{left}\n{right}"
 
-class BottomUpTreeBuilder:
-    def __init__(self, values: List[Any]):
-        self._leafs = values
-
-    def build(self) -> Optional[MerkleTreeNode]:
-        if not self._leafs:
-            return None
-
-        leaf_nodes = [MerkleTreeLeafNode(value) for value in self._leafs]
-        working_set = leaf_nodes
-
-        # merge leafs pairwise, until only one is left
-        while len(working_set) > 1:
-            idx = 0
-            new_working_set = []
-            while idx + 1 < len(working_set):
-                new_node = MerkleTreeInnerNode(working_set[idx], working_set[idx+1])
-                new_working_set.append(new_node)
-                idx += 2
-            # append the odd node to the working set
-            if idx < len(working_set):
-                new_working_set.append(working_set[idx])
-            working_set = new_working_set
-
-        return working_set[0]
-
 
 class TopDownBuilder:
     def __init__(self, values: List[Account]):
@@ -87,6 +61,10 @@ class TopDownBuilder:
         return self._build(balance_nodes)
 
     def _build(self, inputs: List[MerkleTreeNode]) -> Optional[MerkleTreeNode]:
+        """
+        The trees constructed here and in cairo must be exactly the same. So, to avoid weird bugs, 
+        we're closely replicating the way it is done in cairo.
+        """
         length = len(inputs)
         if length == 0:
             return None
@@ -96,14 +74,15 @@ class TopDownBuilder:
         center = self._div_2(length)
         left_node = self._build(inputs[:center])
         # no off-by-one here - "classical" algorithm to build a BST from a list is to do [center+1:] on the right
-        # howeer, for the merkle tree, we don't want to exclude the "central element".
+        # however, for the merkle tree, we don't want to exclude the "central element".
         right_node = self._build(inputs[center:])
         return MerkleTreeInnerNode(left_node, right_node)
 
     def _div_2(self, value):
         """
-        Technically this is equivalent to just `value // 2`; however, as this input is used
-        in Cairo proover&verifier, it needs to closely replicate the behavior there.
+        Technically this is equivalent to just `value // 2`; however, division in cairo happens by modulo P,
+        so e.g. 7 / 2 != 3. Hence, this method closely follows the way it is done in cairo - in pacticular
+        `_div_2` function in merkle_tree.cairo 
         """
         if value & 0x01 == 1:
             return (value - 1) // 2
