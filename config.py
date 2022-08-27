@@ -3,6 +3,8 @@ import json
 with open('config.json') as json_file:
     raw_config = json.load(json_file)
 
+LOG_LEVEL = 'DEBUG'
+
 LOGGER_CONFIG = {
     'version': 1,
     'formatters': {
@@ -14,7 +16,7 @@ LOGGER_CONFIG = {
     'handlers': {
         'console': {
             'class': 'logging.StreamHandler',
-            'level': 'INFO',
+            'level': LOG_LEVEL,
             "formatter": "detailed"
         },
         # 'file': {
@@ -26,7 +28,7 @@ LOGGER_CONFIG = {
     },
     'loggers': {},
     'root': {
-        'level': 'INFO',
+        'level': LOG_LEVEL,
         'handlers': ['console']
     },
 }

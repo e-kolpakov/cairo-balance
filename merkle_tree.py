@@ -1,9 +1,12 @@
+from eth_typing import HexStr
 from typing import List, Any, Optional
 
 from account import Account
 from keccak_utils import account_keccak, keccak2, KeccakHash
+from utils import IntUtils
 
 MerkleTreeRoot = KeccakHash
+
 
 class MerkleTreeNode:
     def hash(self):
@@ -12,11 +15,23 @@ class MerkleTreeNode:
     def print(self, depth):
         raise NotImplemented("Must be overridden in descendents")
 
-    def print_hash(self, hash):
+    def print_hash(self):
+        hash = self.hash()
         high = int.from_bytes(hash[:16], 'big', signed=False)
         low = int.from_bytes(hash[16:32], 'big', signed=False)
         return f"[high={high}, low={low}]"
 
+    def to_cairo(self) -> HexStr:
+        int_value = int.from_bytes(self.hash(), 'big', signed=False)
+        return IntUtils.to_hex_str(int_value)
+
+
+class MerkleTreeLeafNode(MerkleTreeNode):
+    def __init__(self, hash: HexStr):
+        self._hash = hash
+
+    def hash(self):
+        return self._hash.encode('utf-8')
 
 class MerkleTreeAccountLeafNode(MerkleTreeNode):
     def __init__(self, value: Account):
@@ -29,7 +44,7 @@ class MerkleTreeAccountLeafNode(MerkleTreeNode):
         return self._hash
 
     def print(self, depth):
-        return f"BalanceLeaf({self.value}, {self.print_hash(self._hash)}) at {depth}"
+        return f"BalanceLeaf({self.value}, {self.print_hash()}) at {depth}"
 
 class MerkleTreeInnerNode(MerkleTreeNode):
     def __init__(self, left: MerkleTreeNode, right: MerkleTreeNode):
@@ -42,7 +57,7 @@ class MerkleTreeInnerNode(MerkleTreeNode):
         return self._hash
 
     def print(self, depth):
-        self_print = f"Node({self.print_hash(self._hash)}) at {depth}"
+        self_print = f"Node({self.print_hash()}) at {depth}"
         left = self.left.print(depth+1)
         right = self.right.print(depth+1)
         return f"{self_print}\n{left}\n{right}"

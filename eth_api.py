@@ -1,8 +1,11 @@
+from eth_typing import HexStr
+
 import config
 import logging
 
 from dataclasses_json import DataClassJsonMixin
-from typing import List
+from typing import List, Dict, Optional
+from backports import TypedDict
 
 from dataclasses import dataclass
 from decimal import Decimal
@@ -11,30 +14,72 @@ from web3 import Web3, HTTPProvider
 from web3.beacon import Beacon
 
 from cache import TypedJsonDiskCache
-from merkle_tree import MerkleTreeRoot
+from merkle_tree import MerkleTreeRoot, MerkleTreeNode, MerkleTreeLeafNode
 from utils import AsDict
+
+class ValidatorCairoSerialized(TypedDict):
+    pubkey: str
+    balance: Decimal
+
+BeaconStateCairoSerialized = Dict[str, List[ValidatorCairoSerialized]]
 
 
 @dataclass
 class Validator(DataClassJsonMixin, AsDict):
-    pubkey: str
+    pubkey: HexStr
     balance: Decimal
 
     @classmethod
     def parse(cls, raw_data):
         # assert raw_data["validator"]["effective_balance"] == raw_data['balance']
         return cls(
-            pubkey=raw_data["validator"]["pubkey"],
+            pubkey=HexStr(raw_data["validator"]["pubkey"]),
             balance=Decimal(int(raw_data["balance"])),
         )
+
+    def to_cairo(self) -> ValidatorCairoSerialized:
+        return {"pubkey": self.pubkey, "balance": self.balance}
+
+@dataclass
+class BeaconState:
+    LOGGER = logging.getLogger(__name__ + ".BeaconState")
+    validators: List[Validator]
+    
+    def __init__(self, validators):
+        self.validators = validators
+        self._validator_lookup = {validator.pubkey: validator for validator in validators}
+
+    def find_validator(self, pubkey: HexStr) -> Optional[Validator]:
+        return self._validator_lookup.get(pubkey)
+    
+    def merkle_tree_root(self) -> MerkleTreeNode:
+        return MerkleTreeLeafNode(HexStr("0x123456"))
+
+    def to_cairo(self) -> BeaconStateCairoSerialized:
+        return {
+            "validators": [
+                validator.to_cairo()
+                for validator in self.validators
+            ]
+        }
+    @property
+    def total_validators(self):
+        return len(self.validators)
+
+    def __repr__(self):
+        return self.__str__()
+
+    def __str__(self):
+        self.LOGGER.debug("Calling __str__")
+        return f"BeaconState(total_validators={self.total_validators}, first_10_validators={self.validators[:10]}"
 
 
 def get_web3_connection(endpoint) -> Web3:
     return Web3(HTTPProvider(endpoint))
 
 
-class BeaconWrapper:
-    LOGGER = logging.getLogger(__name__ + ".BeaconWrapper")
+class BeaconAPIWrapper:
+    LOGGER = logging.getLogger(__name__ + ".BeaconAPIWrapper")
 
     def __init__(self, beacon: Beacon):
         self._beacon = beacon
@@ -48,15 +93,11 @@ class BeaconWrapper:
             for raw_record in raw_data["data"]
         ]
 
-    def calculate_merkle_tree(self) -> MerkleTreeRoot:
-        pass
-
-
-class CachedBeaconWrapper(BeaconWrapper):
-    LOGGER = logging.getLogger(__name__ + ".CachedBeaconWrapper")
+class CachedBeaconAPIWrapper(BeaconAPIWrapper):
+    LOGGER = logging.getLogger(__name__ + ".CachedBeaconAPIWrapper")
 
     def __init__(self, beacon: Beacon, storage_folder: str):
-        super(CachedBeaconWrapper, self).__init__(beacon)
+        super(CachedBeaconAPIWrapper, self).__init__(beacon)
         self._validator_cache: TypedJsonDiskCache[Validator] = TypedJsonDiskCache(
             config.ETH2_CACHE_LOCATION, Validator.from_dict, Validator.to_dict
         )
@@ -70,13 +111,13 @@ class CachedBeaconWrapper(BeaconWrapper):
             return cached
 
         self.LOGGER.debug("Json disk cache is empty")
-        read_from_api = super(CachedBeaconWrapper, self).validators()
+        read_from_api = super(CachedBeaconAPIWrapper, self).validators()
         self.LOGGER.debug(f"Saving {len(read_from_api)} validators into json disk cache")
         self._validator_cache.save_models(read_from_api, *cache_key)
         return read_from_api
 
 def main():
-    beacon = CachedBeaconWrapper(Beacon(config.ETH2_API), config.ETH2_CACHE_LOCATION)
+    beacon = CachedBeaconAPIWrapper(Beacon(config.ETH2_API), config.ETH2_CACHE_LOCATION)
     validators = beacon.validators()
     print(len(validators))
     print(validators[:10])

@@ -1,6 +1,7 @@
 from dataclasses import asdict
 
 from datetime import date, datetime
+from eth_typing import HexStr
 from typing import Union, List, Dict, TypeVar
 from backports import Literal
 
@@ -50,9 +51,9 @@ class AsDict:
 
 class IntUtils:
     @classmethod
-    def to_hex_str(cls, value: int) -> str:
-        return f'{value:#x}'
+    def to_hex_str(cls, value: int) -> HexStr:
+        return HexStr(f'{value:#x}')
 
     @classmethod
-    def from_hex_str(cls, value: str) -> int:
+    def from_hex_str(cls, value: HexStr) -> int:
         return int(value, 16)

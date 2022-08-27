@@ -1,3 +1,6 @@
+from dataclasses import dataclass
+
+from eth_typing import HexStr
 from typing import List, Any, Dict
 from backports import Literal
 
@@ -12,9 +15,11 @@ from cache import TypedJsonDiskCache
 from eth_api import get_web3_connection
 from lido_sdk import Lido
 
+from merkle_tree import MerkleTreeLeafNode, MerkleTreeNode
 from utils import IntUtils, ByteEndianness
 
 OperatorKeyAttributes = Literal['index', 'operator_index', 'key', 'depositSignature', 'used']
+OperatorKeysCairoSerialized = List[HexStr]
 
 class OperatorKeyAdapter:
     """
@@ -31,6 +36,10 @@ class OperatorKeyAdapter:
         return self._decode_hex(self._operator_key["key"])
 
     @property
+    def key_hex(self) -> HexStr:
+        return IntUtils.to_hex_str(self.key)
+
+    @property
     def deposit_signature(self):
         return self._decode_hex(self._operator_key["depositSignature"])
 
@@ -39,6 +48,29 @@ class OperatorKeyAdapter:
 
     def __repr__(self):
         return f"OperatorKeyAdapter(key={self.key:#x}, signature={self.deposit_signature:#x})"
+
+
+@dataclass
+class LidoOperatorList:
+    LOGGER = logging.getLogger(__name__ + ".LidoOperatorList")
+    operators: List[OperatorKeyAdapter]
+
+    def merkle_tree_root(self) -> MerkleTreeNode:
+        return MerkleTreeLeafNode(HexStr("0xabcdef"))
+
+    def to_cairo(self):
+        return [operator.key_hex for operator in self.operators]
+
+    @property
+    def total_operators(self):
+        return len(self.operators)
+
+    def __repr__(self):
+        return self.__str__()
+
+    def __str__(self):
+        self.LOGGER.debug("Calling __str__")
+        return f"LidoOperatorList(total_operators={self.total_operators}, first_10_operators={self.operators[:10]}"
 
 
 class OperatorKeyJsonableSerializer:
@@ -51,7 +83,7 @@ class OperatorKeyJsonableSerializer:
         return {
             "index": operator_key.index,
             "operator_index": operator_key.operator_index,
-            "key": IntUtils.to_hex_str(operator_key.key),
+            "key": operator_key.key_hex,
             "depositSignature": IntUtils.to_hex_str(operator_key.deposit_signature),
             "used": operator_key.used,
         }
