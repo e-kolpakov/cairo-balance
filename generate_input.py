@@ -1,18 +1,35 @@
+from decimal import Decimal
+
+import logging
+
 import enum
 import json
 import os
 import random
 import sys
 import argparse
+from eth_typing import HexStr
+from lido_sdk.methods.typing import OperatorKey
 from typing import TypeVar, Set
 
 from tap import Tap
 
 from account import Account
+from eth_api import BeaconState, Validator
+from input_from_eth import read_from_eth, ProverPayload
+from json_protocol import CustomJsonEncoder
 from keccak_utils import account_keccak
+from lido_api import LidoOperatorList, OperatorKeyAdapter
 from merkle_tree import TopDownBuilder
 
 T = TypeVar('T')
+
+LOGGER = logging.getLogger(__name__)
+
+class GenerationMode(enum.Enum):
+    STUB = 'stub'
+    GEN = "gen"
+    FROM_ETH = 'from_eth'
 
 class RangeMode(enum.Enum):
     SMALL = 'small'
@@ -112,7 +129,7 @@ class ArgumentParser(Tap):
     count: int
     address_range: RangeMode
     value_range: RangeMode
-    single: bool
+    mode: GenerationMode
 
     def configure(self):
         self.add_argument(
@@ -128,7 +145,8 @@ class ArgumentParser(Tap):
             default=RangeMode.SMALL
         )
         self.add_argument(
-            "-s", "--single", action='store_true', default=False
+            "-m", "--mode", action=EnumAction, type=GenerationMode,
+            default=GenerationMode.STUB
         )
 
 
@@ -170,39 +188,58 @@ def generate_many(arguments):
         }
     }
 
-def generate_single(arguments):
-    address_range = AddressRange.get_range(arguments.address_range)
-    value_range = ValueRange.get_range(arguments.value_range)
-    # account = generate_account(address_range, value_range, set())
-    account = Account(2**79 + 2**16, int(2e18))
-    print(account)
+def stub():
+    key1 = 0x1234567890
+    key2 = 0x0987654321
+    prover = ProverPayload(
+        beacon_state=BeaconState(
+            [
+                Validator(HexStr(f"{key1:#x}"), Decimal(1000)),
+                Validator(HexStr(f"{key2:#x}"), Decimal(2000)),
+            ]
+        ),
+        lido_operators=LidoOperatorList(
+            [
+                OperatorKeyAdapter(
+                    operator_key=OperatorKey(
+                        index=0, operator_index=0, key=key1.to_bytes(32, 'big', signed=False), depositSignature=b'asdfgh', used=True
+                    )
+                ),
+                OperatorKeyAdapter(
+                    operator_key=OperatorKey(
+                        index=1, operator_index=0, key=b'zxcvbn', depositSignature=b'qweasd', used=True
+                    )
+                )
+            ]
+        )
+    )
+    return prover.to_cairo()
 
-    hash = account_keccak(account)
-    print(hash)
-    hash_int = int.from_bytes(hash, 'big', signed=False)
-    print(hash_int)
+def generate(arguments):
+    pass
 
-    return {
-        'account': { "address": account.address, "balance": account.balance},
-        "account_hash": {
-            # big endian = high bytes first, so :16 is the "high" 16-byte word in a 32-byte hash
-            "high": int.from_bytes(hash[:16], 'big', signed=False),
-            "low": int.from_bytes(hash[16:32], 'big', signed=False)
-        }
-    }
+def from_eth():
+    prover_payload = read_from_eth()
+    LOGGER.info("Generated prover payload %s", prover_payload)
+    LOGGER.debug("Serializing payload to json")
+    return prover_payload.to_cairo()
 
 DESTINATION_FOLDER = "."
 
 def main():
     arguments = ArgumentParser().parse_args()
-    if arguments.single:
-        data = generate_single(arguments)
-        destination_file = os.path.join(DESTINATION_FOLDER, "single_input.json")
+    destination_file = os.path.join(DESTINATION_FOLDER, "balance_sum_prover.json")
+    if arguments.mode == GenerationMode.STUB:
+        data = stub()
+    elif arguments.mode == GenerationMode.GEN:
+        raise ValueError(f"Generation mode {arguments.mode} is yet unsupported")
+        # data = generate(arguments)
+    elif arguments.mode == GenerationMode.FROM_ETH:
+        data = from_eth()
     else:
-        data = generate_many(arguments)
-        destination_file = os.path.join(DESTINATION_FOLDER, "balance_sum_prover.json")
+        raise ValueError(f"Unsupported generation mode {arguments.mode}")
 
-    to_write = json.dumps(data, indent=4, sort_keys=True)
+    to_write = json.dumps(data, indent=4, sort_keys=True, cls=CustomJsonEncoder)
     with open(destination_file, "wb") as file:
         file.write(to_write.encode())
 
