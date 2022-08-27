@@ -1,8 +1,9 @@
 from typing import List, Any, Optional
 
 from account import Account
-from keccak_utils import account_keccak, keccak2
+from keccak_utils import account_keccak, keccak2, KeccakHash
 
+MerkleTreeRoot = KeccakHash
 
 class MerkleTreeNode:
     def hash(self):
@@ -16,6 +17,7 @@ class MerkleTreeNode:
         low = int.from_bytes(hash[16:32], 'big', signed=False)
         return f"[high={high}, low={low}]"
 
+
 class MerkleTreeAccountLeafNode(MerkleTreeNode):
     def __init__(self, value: Account):
         self.value = value
@@ -23,7 +25,7 @@ class MerkleTreeAccountLeafNode(MerkleTreeNode):
         self.left = None
         self.right = None
 
-    def hash(self):
+    def hash(self) -> MerkleTreeRoot:
         return self._hash
 
     def print(self, depth):
@@ -36,7 +38,7 @@ class MerkleTreeInnerNode(MerkleTreeNode):
         # print(f"Computing hash from {self.print_hash(left.hash())} and {self.print_hash(right.hash())}")
         self._hash = keccak2(left.hash(), right.hash())
 
-    def hash(self):
+    def hash(self) -> KeccakHash:
         return self._hash
 
     def print(self, depth):

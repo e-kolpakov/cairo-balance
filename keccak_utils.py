@@ -1,8 +1,9 @@
 from typing import List, Iterable
 
 from eth_hash.auto import keccak
-
 from account import Account
+
+KeccakHash = bytes
 
 
 def _chunk_list(lst, n):
@@ -16,7 +17,7 @@ def to_ints(bytes_list, n_bytes_per_group = 16, separator=' '):
     strs = [str(hex_int) for hex_int in ints]
     return separator.join(strs)
 
-def _keccak_values(*values: Iterable[bytes]):
+def _keccak_values(*values: Iterable[bytes]) -> KeccakHash:
     keccak_input = bytearray()
     for val in values:
         assert isinstance(val, bytes), f"expected bytes, got {val}"
@@ -28,14 +29,14 @@ def _keccak_values(*values: Iterable[bytes]):
     # print(to_ints(result, 16, "\n"))
     return result
 
-def keccak2(left: bytes, right: bytes) -> bytes:
+def keccak2(left: bytes, right: bytes) -> KeccakHash:
     """
     Similar to keccak2 in keccak.cairo, takes two keccak hashes and calculates keccak hash over them
     """
     return _keccak_values(left, right)
 
 
-def account_keccak(account: Account) -> bytes:
+def account_keccak(account: Account) -> KeccakHash:
     """
     Similar to account_keccak in keccak.cairo, takes an Account and calculates keccak hash over it
 
