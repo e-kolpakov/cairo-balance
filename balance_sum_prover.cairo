@@ -5,7 +5,7 @@ from starkware.cairo.common.cairo_builtins import BitwiseBuiltin
 from starkware.cairo.common.serialize import serialize_word
 from starkware.cairo.common.alloc import alloc
 
-from model import BeaconState, ValidatorKeys, Validator, Eth2ValidatorKey, serialize_validator_key, serialize_uint256
+from model import BeaconState, ValidatorKeys, Validator, Eth2ValidatorKey, serialize_validator_key, serialize_uint256, flatten_beacon_state, flatten_validator_keys
 
 
 # tail-recursive sum
@@ -146,9 +146,27 @@ func main{output_ptr : felt*, range_check_ptr, bitwise_ptr: BitwiseBuiltin*}():
     let (validator_keys: ValidatorKeys) = read_validator_keys()
 
     # Checking the input parsed correctly
-    serialize_input(beacon_state, validator_keys)
+    # serialize_input(beacon_state, validator_keys)
 
+    let (local beacon_state_mtr_input_start: Uint256*) = alloc()
+    let (beacon_state_mtr_input_end: Uint256*) = flatten_beacon_state(beacon_state, beacon_state_mtr_input_start)
 
+    # serialize_uint256(beacon_state_mtr_input_start[0])
+    # serialize_uint256(beacon_state_mtr_input_start[1])
+    # serialize_uint256(beacon_state_mtr_input_start[2])
+    # serialize_uint256(beacon_state_mtr_input_start[3])
+    # serialize_uint256(beacon_state_mtr_input_start[4])
+    # serialize_uint256(beacon_state_mtr_input_start[5])
+    # serialize_uint256(beacon_state_mtr_input_start[6])
+    # serialize_uint256(beacon_state_mtr_input_start[7])
+    # serialize_uint256(beacon_state_mtr_input_start[8])
+
+    let (local keys_mtr_input_start: Uint256*) = alloc()
+    let (keys_mtr_input_end: Uint256*) = flatten_validator_keys(validator_keys, keys_mtr_input_start)
+    serialize_uint256(keys_mtr_input_start[0])
+    serialize_uint256(keys_mtr_input_start[1])
+    serialize_uint256(keys_mtr_input_start[2])
+    serialize_uint256(keys_mtr_input_start[3])
     # let (merkle_tree_root) = calc_account_merkle_tree(accounts, 0, size)
     # assert merkle_tree_root.high = keccak_merkle_tree_root.high
     # assert merkle_tree_root.low = keccak_merkle_tree_root.low
