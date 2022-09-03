@@ -3,7 +3,6 @@ from starkware.cairo.common.keccak import keccak_felts, unsafe_keccak_init, unsa
 from starkware.cairo.common.alloc import alloc
 from starkware.cairo.common.registers import get_fp_and_pc
 
-from account import Account
 
 func keccak2{range_check_ptr}(left: Uint256, right: Uint256) -> (res: Uint256):
     let (keccak_state) = unsafe_keccak_init()
@@ -13,11 +12,11 @@ func keccak2{range_check_ptr}(left: Uint256, right: Uint256) -> (res: Uint256):
     return (res=res)
 end
 
-func account_keccak{range_check_ptr}(account: Account) -> (res: Uint256):
-    alloc_locals
-    let (ptr) = alloc()
-    assert [ptr] = account.address
-    assert [ptr+1] = account.balance
+# func account_keccak{range_check_ptr}(account: Account) -> (res: Uint256):
+#     alloc_locals
+#     let (ptr) = alloc()
+#     assert [ptr] = account.address
+#     assert [ptr+1] = account.balance
 
-    return keccak_felts(2, ptr)
-end
+#     return keccak_felts(2, ptr)
+# end
