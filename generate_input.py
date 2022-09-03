@@ -14,11 +14,9 @@ from typing import TypeVar, Set
 
 from tap import Tap
 
-from account import Account
 from eth_api import BeaconState, Validator
 from input_from_eth import read_from_eth, ProverPayload
 from json_protocol import CustomJsonEncoder
-from keccak_utils import account_keccak
 from lido_api import LidoOperatorList, OperatorKeyAdapter
 from merkle_tree import TopDownBuilder
 
@@ -150,64 +148,59 @@ class ArgumentParser(Tap):
         )
 
 
-def generate_account(address_range: AddressRange, value_range: ValueRange, existing_addresses: Set[int]) -> Account:
-    address = random.randint(address_range.low, address_range.high)
-    # this is efficient if `count` << address_range.size, which is the main use case anyway
-    while address in existing_addresses:
-        address = random.randint(address_range.low, address_range.high)
-    balance = random.randint(value_range.low, value_range.high)
-    return Account(address, balance)
-
-
 def generate_many(arguments):
-    count = arguments.count
-    address_range = AddressRange.get_range(arguments.address_range)
-    value_range = ValueRange.get_range(arguments.value_range)
-
-    accounts = []
-    existing_addresses = set()
-    for i in range(count):
-        account = generate_account(address_range, value_range, existing_addresses)
-        accounts.append(account)
-        existing_addresses.add(account.address)
-
-    tree_builder = TopDownBuilder(accounts)
-    tree_root = tree_builder.build()
-    # print(tree_root.print(0))
-    print(f"Total value {sum([account.balance for account in accounts])} wei" )
-    print("Merkle tree root", tree_root.print_hash(tree_root.hash()))
-
-    return {
-        'accounts': [
-            { "address": f"0x{account.address:020x}", "balance": account.balance}
-            for account in accounts
-        ],
-        "merkle_tree_root": {
-            "high": int.from_bytes(tree_root.hash()[:16], 'big', signed=False),
-            "low": int.from_bytes(tree_root.hash()[16:32], 'big', signed=False)
-        }
-    }
+    pass
+    # count = arguments.count
+    # address_range = AddressRange.get_range(arguments.address_range)
+    # value_range = ValueRange.get_range(arguments.value_range)
+    #
+    # accounts = []
+    # existing_addresses = set()
+    # for i in range(count):
+    #     account = generate_account(address_range, value_range, existing_addresses)
+    #     accounts.append(account)
+    #     existing_addresses.add(account.address)
+    #
+    # tree_builder = TopDownBuilder(accounts)
+    # tree_root = tree_builder.build()
+    # # print(tree_root.print(0))
+    # print(f"Total value {sum([account.balance for account in accounts])} wei" )
+    # print("Merkle tree root", tree_root.print_hash(tree_root.hash()))
+    #
+    # return {
+    #     'accounts': [
+    #         { "address": f"0x{account.address:020x}", "balance": account.balance}
+    #         for account in accounts
+    #     ],
+    #     "merkle_tree_root": {
+    #         "high": int.from_bytes(tree_root.hash()[:16], 'big', signed=False),
+    #         "low": int.from_bytes(tree_root.hash()[16:32], 'big', signed=False)
+    #     }
+    # }
 
 def stub():
-    key1 = 0x1234567890
-    key2 = 0x0987654321
+    key1 = 0x1
+    key2 = 0x968ff4505567afa998c734bc85b73e7fd8f1003650af5f47371367cf83cb534dca970234bc96696a91b232e90e173350
+
+    key3 = 0x3
     prover = ProverPayload(
         beacon_state=BeaconState(
             [
-                Validator(HexStr(f"{key1:#x}"), Decimal(1000)),
-                Validator(HexStr(f"{key2:#x}"), Decimal(2000)),
+                Validator(HexStr(f"{key1:#096x}"), Decimal(1000)),
+                Validator(HexStr(f"{key2:#096x}"), Decimal(2000)),
+                Validator(HexStr(f"{key3:#096x}"), Decimal(4000)),
             ]
         ),
         lido_operators=LidoOperatorList(
             [
                 OperatorKeyAdapter(
                     operator_key=OperatorKey(
-                        index=0, operator_index=0, key=key1.to_bytes(32, 'big', signed=False), depositSignature=b'asdfgh', used=True
+                        index=0, operator_index=0, key=key1.to_bytes(48, 'big', signed=False), depositSignature=b'asdfgh', used=True
                     )
                 ),
                 OperatorKeyAdapter(
                     operator_key=OperatorKey(
-                        index=1, operator_index=0, key=b'zxcvbn', depositSignature=b'qweasd', used=True
+                        index=1, operator_index=0, key=key2.to_bytes(48, 'big', signed=False), depositSignature=b'qweasd', used=True
                     )
                 )
             ]

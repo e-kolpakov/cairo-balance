@@ -15,8 +15,9 @@ from cache import TypedJsonDiskCache
 from eth_api import get_web3_connection
 from lido_sdk import Lido
 
-from merkle_tree import MerkleTreeLeafNode, MerkleTreeNode
-from utils import IntUtils, ByteEndianness
+from keccak_utils import KeccakInput
+from merkle_tree import MerkleTreeLeafNode, MerkleTreeNode, EthereumBuilder
+from utils import IntUtils, ByteEndianness, BytesUtils
 
 OperatorKeyAttributes = Literal['index', 'operator_index', 'key', 'depositSignature', 'used']
 OperatorKeysCairoSerialized = List[HexStr]
@@ -31,13 +32,22 @@ class OperatorKeyAdapter:
     def _decode_hex(self, raw: bytes, endianness: ByteEndianness = 'big', signed=False) -> int:
         return int.from_bytes(self._operator_key["key"], endianness, signed=signed)
 
-    @property
-    def key(self):
-        return self._decode_hex(self._operator_key["key"])
+    def _maybe_pad(self, value: bytes, padding=False):
+        if not padding:
+            return value
+        else:
+            return BytesUtils.pad_to_32_multiple(value)
 
     @property
-    def key_hex(self) -> HexStr:
-        return IntUtils.to_hex_str(self.key)
+    def key_bytes(self):
+        return self._operator_key["key"]
+
+    @property
+    def key(self) -> HexStr:
+        return IntUtils.to_hex_str(self._decode_hex(self._operator_key["key"]))
+
+    def key_int(self) -> int:
+        return self._decode_hex(self._operator_key["key"])
 
     @property
     def deposit_signature(self):
@@ -55,11 +65,19 @@ class LidoOperatorList:
     LOGGER = logging.getLogger(__name__ + ".LidoOperatorList")
     operators: List[OperatorKeyAdapter]
 
+    def _flatten(self) -> List[KeccakInput]:
+        return [
+            operator.key_bytes
+            for operator in self.operators
+        ]
+
     def merkle_tree_root(self) -> MerkleTreeNode:
-        return MerkleTreeLeafNode(HexStr("0xabcdef"))
+        tree_builder = EthereumBuilder()
+        tree_builder.add_values(self._flatten())
+        return tree_builder.build()
 
     def to_cairo(self):
-        return [operator.key_hex for operator in self.operators]
+        return [operator.key for operator in self.operators]
 
     @property
     def total_operators(self):
@@ -75,7 +93,7 @@ class LidoOperatorList:
 
 class OperatorKeyJsonableSerializer:
     @classmethod
-    def _hex_str_to_bytes(cls, value: str, length: int, endianness: ByteEndianness = 'big', signed: bool = False):
+    def _hex_str_to_bytes(cls, value: HexStr, length: int, endianness: ByteEndianness = 'big', signed: bool = False):
         return IntUtils.from_hex_str(value).to_bytes(length, endianness, signed=signed)
 
     @classmethod

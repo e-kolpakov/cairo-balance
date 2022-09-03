@@ -14,8 +14,10 @@ from web3 import Web3, HTTPProvider
 from web3.beacon import Beacon
 
 from cache import TypedJsonDiskCache
-from merkle_tree import MerkleTreeRoot, MerkleTreeNode, MerkleTreeLeafNode
-from utils import AsDict
+from keccak_utils import KeccakInput
+from merkle_tree import MerkleTreeRoot, MerkleTreeNode, MerkleTreeLeafNode, EthereumBuilder
+from utils import AsDict, IntUtils
+
 
 class ValidatorCairoSerialized(TypedDict):
     pubkey: str
@@ -40,6 +42,15 @@ class Validator(DataClassJsonMixin, AsDict):
     def to_cairo(self) -> ValidatorCairoSerialized:
         return {"pubkey": self.pubkey, "balance": self.balance}
 
+    @property
+    def pubkey_int(self) -> int:
+        return int(self.pubkey, 16)
+
+    @property
+    def balance_int(self) -> int:
+        return int(self.balance)
+
+
 @dataclass
 class BeaconState:
     LOGGER = logging.getLogger(__name__ + ".BeaconState")
@@ -47,13 +58,30 @@ class BeaconState:
     
     def __init__(self, validators):
         self.validators = validators
-        self._validator_lookup = {validator.pubkey: validator for validator in validators}
+        self._validator_lookup = {int(validator.pubkey, 16): validator for validator in validators}
 
     def find_validator(self, pubkey: HexStr) -> Optional[Validator]:
-        return self._validator_lookup.get(pubkey)
+        return self._validator_lookup.get(int(pubkey, 16))
+
+    def _flatten(self) -> List[KeccakInput]:
+        """
+        MerkleTree needs the input to be a list of `bytes` or `bytearray`s
+        This function "flattens" the BeaconState to that shape
+
+        Note: "layout" matters - if order of fields is changed, the hash will be different
+        :return:
+        """
+        result = []
+        for validator in self.validators:
+            result.append(IntUtils.to_keccak_input(validator.pubkey_int, size_hint=48))
+            result.append(IntUtils.to_keccak_input(validator.balance_int, size_hint=32))
+
+        return result
     
     def merkle_tree_root(self) -> MerkleTreeNode:
-        return MerkleTreeLeafNode(HexStr("0x123456"))
+        tree_builder = EthereumBuilder()
+        tree_builder.add_values(self._flatten())
+        return tree_builder.build()
 
     def to_cairo(self) -> BeaconStateCairoSerialized:
         return {
