@@ -125,12 +125,16 @@ class EthereumBuilder:
     """
     LOGGER = logging.getLogger(__name__ + ".EthereumBuilder")
     def __init__(self):
-        self.zerohashes = [MerkleTreeLeafNode(b'\x00' * 32, label="zerohash0")]
+        self._zerohashes = [MerkleTreeLeafNode(b'\x00' * 32, label="zerohash0")]
         self._values = []
         for i in range(1, 32):
-            hash_at_height = keccak(self.zerohashes[i - 1].hash() + self.zerohashes[i - 1].hash())
-            self.zerohashes.append(MerkleTreeLeafNode(hash_at_height, label=f"zerohash{i}"))
-        self.branch = self.zerohashes[::]
+            hash_at_height = keccak(self._zerohashes[i - 1].hash() + self._zerohashes[i - 1].hash())
+            self._zerohashes.append(MerkleTreeLeafNode(hash_at_height, label=f"zerohash{i}"))
+        self.branch = self._zerohashes[::]
+
+    @property
+    def zerohashes(self):
+        return self._zerohashes[::]
 
     def _hash(self, value: KeccakInput) -> KeccakHash:
         return keccak(value)
@@ -159,7 +163,7 @@ class EthereumBuilder:
             if (size >> h) % 2 == 1:
                 r = MerkleTreeInnerNode(self.branch[h], r, label=f"h{h}-right")
             else:
-                r = MerkleTreeInnerNode(r, self.zerohashes[h], label=f"h{h}-left")
+                r = MerkleTreeInnerNode(r, self._zerohashes[h], label=f"h{h}-left")
         return r
 
     def build(self) -> MerkleTreeNode:

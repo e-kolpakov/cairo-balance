@@ -34,6 +34,7 @@ func serialize_validator_key{output_ptr : felt*}(value: Eth2ValidatorKey):
 end
 
 func serialize_uint256{output_ptr : felt*}(value: Uint256):
+    # output is big-endian
     serialize_word(value.high)
     serialize_word(value.low)
     return()

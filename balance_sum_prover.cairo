@@ -163,10 +163,10 @@ func main{output_ptr : felt*, range_check_ptr, bitwise_ptr: BitwiseBuiltin*}():
 
     let (local keys_mtr_input_start: Uint256*) = alloc()
     let (keys_mtr_input_end: Uint256*) = flatten_validator_keys(validator_keys, keys_mtr_input_start)
-    serialize_uint256(keys_mtr_input_start[0])
-    serialize_uint256(keys_mtr_input_start[1])
-    serialize_uint256(keys_mtr_input_start[2])
-    serialize_uint256(keys_mtr_input_start[3])
+    # serialize_uint256(keys_mtr_input_start[0])
+    # serialize_uint256(keys_mtr_input_start[1])
+    # serialize_uint256(keys_mtr_input_start[2])
+    # serialize_uint256(keys_mtr_input_start[3])
     # let (merkle_tree_root) = calc_account_merkle_tree(accounts, 0, size)
     # assert merkle_tree_root.high = keccak_merkle_tree_root.high
     # assert merkle_tree_root.low = keccak_merkle_tree_root.low
