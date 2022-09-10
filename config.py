@@ -1,6 +1,12 @@
+import os.path
+
 import json
 
-with open('config.json') as json_file:
+PROJECT_ROOT = os.path.dirname(__file__)
+
+CONFIG_LOCATION = os.path.join(PROJECT_ROOT, 'config.json')
+
+with open(CONFIG_LOCATION) as json_file:
     raw_config = json.load(json_file)
 
 LOG_LEVEL = 'DEBUG'
