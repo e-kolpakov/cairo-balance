@@ -122,6 +122,8 @@ class TopDownBuilder:
 class EthereumBuilder:
     """
     Replica of https://github.com/ethereum/research/blob/master/beacon_chain_impl/progressive_merkle_tree.py
+    With some modifications to be more cairo-friendly - test_merkle_tree.py ensures the result match reference
+    implementation
     """
     LOGGER = logging.getLogger(__name__ + ".EthereumBuilder")
     def __init__(self):
@@ -151,7 +153,7 @@ class EthereumBuilder:
     def _add_value(self, index: int, value: KeccakInput) -> None:
         i = 0
         cur_node = MerkleTreeLeafNode(value, label=f"leaf-{index}")
-        while (index + 1) % 2 ** (i + 1) == 0:
+        while (index + 1) % (2 ** (i + 1)) == 0:
             i += 1
         for j in range(0, i):
             cur_node = MerkleTreeInnerNode(self.branch[j], cur_node, label=f"inner-{j}")
