@@ -27,7 +27,6 @@ func read_input() -> (res: Uint256*, size: felt):
         data = program_input['data']
         ids.input_size = len(data)
         values_mem_offset = ids.values = segments.add()
-        print("Number of records", len(data))
         for (idx, record) in enumerate(data):
             memory_offset = values_mem_offset + idx * ids.Uint256.SIZE
             high, low = split_uint256(record)

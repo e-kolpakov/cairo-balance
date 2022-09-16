@@ -5,6 +5,7 @@ from typing import List, Any, Optional
 
 from keccak_utils import keccak, keccak2, KeccakInput, KeccakHash
 from utils import IntUtils, BytesUtils
+from config import DEBUG
 
 MerkleTreeRoot = KeccakHash
 
@@ -79,7 +80,7 @@ class MerkleTreeInnerNode(MerkleTreeNode):
         self_print = f"{padding}Node({self.label}{hash_part})"
         left = self.left.print(depth+1, with_hash)
         right = self.right.print(depth+1, with_hash)
-        return f"{left}\n{right}\n{self_print}\n"
+        return f"{self_print}\n{left}\n{right}"
 
     def __str__(self):
         return f"MerkleTreeInnerNode({self.label}, left={self.left.label}, right={self.right.label})"
@@ -170,27 +171,19 @@ class EthereumBuilder:
         #     cur_node = MerkleTreeInnerNode(self.branch[i], cur_node, label=f"inner-{i}-{node_idx}")
         #     i += 1
 
-        # (new_branch, at_height) = self._add_value_rec(index + 1, cur_node, 0)
-        (new_branch, at_height) = self._add_value_rec2(index + 1, cur_node, 0)
+        (new_branch, at_height) = self._add_value_rec(index + 1, cur_node, 0)
         self.branch[at_height] = new_branch
 
-    def _add_value_rec(self, index, cur_node, height=0, divisor=2):
-        if index % divisor != 0:
-            return (cur_node, height)
-
-        new_node = MerkleTreeInnerNode(self.branch[height], cur_node, label=f"inner-{height}")
-        return self._add_value_rec(index, new_node, height + 1, divisor * 2)
-
-    def _add_value_rec2(self, index, cur_node, height=0, mask=0b1):
+    def _add_value_rec(self, index, cur_node, height=0, mask=0b1):
         if index & mask != 0:
             return (cur_node, height)
 
         new_node = MerkleTreeInnerNode(self.branch[height], cur_node, label=f"inner-{height}")
-        return self._add_value_rec2(index, new_node, height + 1, (mask * 2) + 1)
+        return self._add_value_rec(index, new_node, height + 1, (mask * 2) + 1)
 
     def get_root_from_branch(self, size) -> MerkleTreeNode:
         r = MerkleTreeLeafNode(b'\x00' * 32, "zerohash0")
-        return self._get_root_from_branch_rec(size, r, 0)
+        return self._get_root_from_branch_rec(size, r, 0, 1)
         # for h in range(32):
         #     if (size >> h) % 2 == 1:
         #         r = MerkleTreeInnerNode(self.branch[h], r, label=f"h{h}-right")
@@ -198,14 +191,18 @@ class EthereumBuilder:
         #         r = MerkleTreeInnerNode(r, self._zerohashes[h], label=f"h{h}-left")
         # return r
 
-    def _get_root_from_branch_rec(self, size, cur_node, height):
+    def _get_root_from_branch_rec(self, size, cur_node, height, mask):
         if height == self.MAX_HEIGHT:
             return cur_node
-        if size % 2 == 1:
-            new_node = MerkleTreeInnerNode(self.branch[height], cur_node, label=f"h{height}-right")
+        if size & mask == mask:
+            new_node = MerkleTreeInnerNode(self.branch[height], cur_node, label=f"h{height}-branch")
+            if DEBUG:
+                self.LOGGER.debug(f"h{height}-branch, {new_node.hash_hex()}")
         else:
-            new_node = MerkleTreeInnerNode(cur_node, self._zerohashes[height], label=f"h{height}-left")
-        return self._get_root_from_branch_rec(size >> 1, new_node, height + 1)
+            new_node = MerkleTreeInnerNode(cur_node, self._zerohashes[height], label=f"h{height}-zerohash")
+            if DEBUG:
+                self.LOGGER.debug(f"h{height}-zerohash, {new_node.hash_hex()}")
+        return self._get_root_from_branch_rec(size, new_node, height + 1, mask * 2)
 
     def build(self) -> MerkleTreeNode:
         # Construct the tree using the branch-based algo
