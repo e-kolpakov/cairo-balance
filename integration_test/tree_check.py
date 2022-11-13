@@ -59,11 +59,11 @@ def read_cairo_hash(cairo_output: List[int]) -> int:
 def example_inputs():
     from eth_progressive_merkle_tree_reference_impl import testdata
     return [
-        # (f"count_0", []),
-        # (f"count_1", testdata[:1]),
-        # (f"count_2", testdata[:2]),
-        # (f"count_3", testdata[:3]),
-        # (f"count_5", testdata[:5]),
+        (f"count_0", []),
+        (f"count_1", testdata[:1]),
+        (f"count_2", testdata[:2]),
+        (f"count_3", testdata[:3]),
+        (f"count_5", testdata[:5]),
         (f"count_256", testdata[:256]),
         # (f"count_5049", testdata[:5049]),
     ]
@@ -85,10 +85,6 @@ def get_eth_tree(test_data) -> MerkleTreeNode:
 
 
 def main():
-    # w3 = Web3(HTTPProvider(args.node_rpc_url))
-    # if not w3.isConnected():
-    #     print("Error: could not connect to the Ethereum node.")
-    #     exit(1)
     args = parser.parse_args()
 
     LOGGER.info(f"Initializing Cairo client")
