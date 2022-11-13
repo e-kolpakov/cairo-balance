@@ -1,3 +1,5 @@
 *.json
 *.pb.gz
 /.idea/
+/tests/.hypothesis/
+/tests/.pytest_cache/
