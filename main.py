@@ -1,5 +1,3 @@
-from typing import List
-
 import enum
 import argparse
 import logging
@@ -142,9 +140,9 @@ def get_live_prover_payload() -> ProverPayload:
     return ProverPayload(beacon_state, lido_operator_keys)
 
 
-def assert_mtr_equal(label, python_mtr, cairo_mtr):
+def assert_equal(label, python_mtr: str, cairo_mtr: str):
     if python_mtr != cairo_mtr:
-        message = f"[{label}] MTRs mismatch\nCairo :{cairo_mtr:#x}\nPython:{python_mtr:#x}"
+        message = f"[Mismatch] [{label}]\nCairo :{cairo_mtr}\nPython:{python_mtr}"
         LOGGER.error(message)
         raise AssertionError(message)
 
@@ -180,10 +178,23 @@ def main():
     LOGGER.debug("Cairo output %s", parsed_output)
 
     LOGGER.info("Checking merkle tree roots match")
-    assert_mtr_equal("BeaconState", prover_payload.beacon_state.merkle_tree_root, parsed_output.beacon_state_mtr)
-    assert_mtr_equal("LidoValidatorKeys", prover_payload.lido_operators.merkle_tree_root, parsed_output.beacon_state_mtr)
+    assert_equal(
+        "BeaconState Merkle Tree Roots",
+        prover_payload.beacon_state.merkle_tree_root().hash_hex(),
+        parsed_output.beacon_state_mtr
+    )
+    assert_equal(
+        "Validator Keys Merkle Tree Roots",
+        prover_payload.lido_operators.merkle_tree_root().hash_hex(),
+        parsed_output.validator_keys_mtr
+    )
+    assert_equal(
+        "Total Value Locked",
+        str(prover_payload.lido_tlv),
+        str(parsed_output.total_value_locked)
+    )
 
-    print("MTRs matched - success")
+    print("MTRs and TLV matched - success")
 
 
 if __name__ == "__main__":
