@@ -53,3 +53,7 @@ ETH2_CACHE_LOCATION = "./cache/eth2"
 USE_CACHE = True
 # DEBUG = True
 DEBUG = False
+
+class CairoApps:
+    MERKLE_TREE = 'merkle_tree.cairo'
+    TLV_PROVER = 'tlv_prover.cairo'

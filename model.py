@@ -1,11 +1,13 @@
-from decimal import Decimal
+from dataclasses import dataclass
 
+from typing import List
 import logging
 from eth_typing import HexStr
 
 from backports import TypedDict
 from api.eth_api import BeaconState, BeaconStateCairoSerialized
 from api.lido_api import LidoOperatorList, OperatorKeysCairoSerialized
+from utils import IntUtils
 
 DESTINATION_FOLDER = "."
 
@@ -59,3 +61,23 @@ class ProverPayload:
     def __str__(self):
         self.LOGGER.debug("Calling __str__")
         return f"ProverPayload(beacon_state={self.beacon_state}, lido_operators={self.lido_operators}, lido_tlv={self.lido_tlv}"
+
+@dataclass
+class ProverOutput:
+    beacon_state_mtr: HexStr
+    validator_keys_mtr: HexStr
+    total_value_locked: int
+
+    @classmethod
+    def read_from_prover_output(cls, prover_output: List[int]) -> 'ProverOutput':
+        assert len(prover_output) == 5, \
+            """
+            Output should include:
+            * Beacon state Merkle Tree Root (2 lines)
+            * Validator keys Merkle Tree Root (2 lines)
+            * Total Value Locked (1 line)
+            """
+        beacon_state_mtr = IntUtils.read_pair_into_hex_str(prover_output[0], prover_output[1])
+        validator_keys_mtr = IntUtils.read_pair_into_hex_str(prover_output[2], prover_output[3])
+        total_value_locked = prover_output[4]
+        return cls(beacon_state_mtr, validator_keys_mtr, total_value_locked)

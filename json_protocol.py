@@ -5,9 +5,19 @@ import json
 from decimal import Decimal
 from datetime import datetime, date
 
-from typing import Union, List, Dict, Generic, Any
+from typing import Union, List, Dict, Generic, Any, TypeVar
 
-from disk_cache import DateFormatter, T
+from utils import DateFormatter
+
+T = TypeVar('T')
+
+JsonLiteral = Union[int, float, str, bool, None, date, datetime]
+FlatJsonList = List[JsonLiteral]
+FlatJsonObject = Dict[str, Union[JsonLiteral, FlatJsonList]]
+_JsonObjectValue = Union[JsonLiteral, FlatJsonList, FlatJsonObject]
+JsonObject = Dict[str, _JsonObjectValue]
+JsonList = Union[FlatJsonList, JsonObject]
+JsonObjectOrList = Union[JsonList, JsonObject]
 
 class JsonProtocolInterface(Generic[T], abc.ABC):
     @abc.abstractmethod

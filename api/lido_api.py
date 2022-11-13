@@ -1,3 +1,5 @@
+import functools
+
 from dataclasses import dataclass
 
 from eth_typing import HexStr
@@ -11,12 +13,12 @@ import logging
 
 from web3 import Web3
 
-from cache import TypedJsonDiskCache
-from eth_api import get_web3_connection
+from disk_cache.cache import TypedJsonDiskCache
+from api.eth_api import get_web3_connection
 from lido_sdk import Lido
 
 from keccak_utils import KeccakInput
-from merkle_tree import MerkleTreeLeafNode, MerkleTreeNode, EthereumBuilder
+from merkle.merkle_tree import MerkleTreeLeafNode, MerkleTreeNode, EthereumBuilder
 from utils import IntUtils, ByteEndianness, BytesUtils
 
 OperatorKeyAttributes = Literal['index', 'operator_index', 'key', 'depositSignature', 'used']
@@ -57,7 +59,7 @@ class OperatorKeyAdapter:
         return self._operator_key[name]
 
     def __repr__(self):
-        return f"OperatorKeyAdapter(key={self.key:#x}, signature={self.deposit_signature:#x})"
+        return f"OperatorKeyAdapter(key={self.key}, signature={self.deposit_signature:#x})"
 
 
 @dataclass
@@ -71,6 +73,7 @@ class LidoOperatorList:
             for operator in self.operators
         ]
 
+    # @functools.cached_property - TODO: this is not avaialble in python 3.7
     def merkle_tree_root(self) -> MerkleTreeNode:
         tree_builder = EthereumBuilder()
         tree_builder.add_values(self._flatten())

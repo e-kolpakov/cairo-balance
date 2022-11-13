@@ -6,8 +6,7 @@ import logging
 
 from typing import Union, Type, Generic, Callable, Iterable
 
-from json_protocol import CustomJsonEncoder, CustomJsonDecoder
-from disk_cache import JsonObject, JsonObjectOrList, T
+from json_protocol import CustomJsonEncoder, CustomJsonDecoder, JsonObject, JsonObjectOrList, T
 
 
 class JsonDiskCache:

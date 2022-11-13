@@ -4,20 +4,9 @@ from dataclasses import asdict
 
 from datetime import date, datetime
 from eth_typing import HexStr
-from typing import Union, List, Dict, TypeVar
+from typing import Union
 from backports import Literal
 from keccak_utils import KeccakInput
-
-T = TypeVar('T')
-
-JsonLiteral = Union[int, float, str, bool, None, date, datetime]
-FlatJsonList = List[JsonLiteral]
-FlatJsonObject = Dict[str, Union[JsonLiteral, FlatJsonList]]
-_JsonObjectValue = Union[JsonLiteral, FlatJsonList, FlatJsonObject]
-JsonObject = Dict[str, _JsonObjectValue]
-JsonList = Union[FlatJsonList, JsonObject]
-JsonObjectOrList = Union[JsonList, JsonObject]
-
 
 ByteEndianness = Literal['little', 'big']
 
@@ -98,3 +87,13 @@ class IntUtils:
             except OverflowError:
                 # hint was wrong, let's try and find the actual size that fits
                 size += 32
+
+    @classmethod
+    def read_pair_into_hash(cls, high, low) -> int:
+        as_bytes = high.to_bytes(16, 'big', signed=False) + low.to_bytes(16, 'big', signed=False)
+        return IntUtils.from_bytes(as_bytes, 'big', signed=False)
+
+    @classmethod
+    def read_pair_into_hex_str(cls, high, low) -> HexStr:
+        hash = cls.read_pair_into_hash(high, low)
+        return cls.to_hex_str(hash)

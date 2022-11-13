@@ -1,18 +1,14 @@
 import logging
-
 import json
-
 import tempfile
-
 import argparse
 
-from eth_typing import HexStr
-from starkware.cairo.bootloaders.generate_fact import get_program_output
 from typing import List
 
-import os, sys
-from web3 import Web3, HTTPProvider
+from starkware.cairo.bootloaders.generate_fact import get_program_output
+from starkware.cairo.sharp.sharp_client import init_client
 
+import os, sys
 import config
 
 sys.path.insert(0, os.getcwd())
@@ -20,7 +16,7 @@ sys.path.insert(0, os.getcwd())
 from merkle.merkle_tree import EthereumBuilder, MerkleTreeNode
 from utils import IntUtils
 
-from starkware.cairo.sharp.sharp_client import init_client
+
 
 TREE_CHECK_CAIRO_SOURCE_PATH = os.path.join(os.path.dirname(__file__), "tree_check.cairo")
 

@@ -1,3 +1,5 @@
+import functools
+
 from eth_typing import HexStr
 
 import config
@@ -13,9 +15,9 @@ from decimal import Decimal
 from web3 import Web3, HTTPProvider
 from web3.beacon import Beacon
 
-from cache import TypedJsonDiskCache
+from disk_cache.cache import TypedJsonDiskCache
 from keccak_utils import KeccakInput
-from merkle_tree import MerkleTreeRoot, MerkleTreeNode, MerkleTreeLeafNode, EthereumBuilder
+from merkle.merkle_tree import MerkleTreeRoot, MerkleTreeNode, MerkleTreeLeafNode, EthereumBuilder
 from utils import AsDict, IntUtils
 
 
@@ -77,7 +79,8 @@ class BeaconState:
             result.append(IntUtils.to_keccak_input(validator.balance_int, size_hint=32))
 
         return result
-    
+
+    # @functools.cached_property - TODO: this is not available in python 3.7
     def merkle_tree_root(self) -> MerkleTreeNode:
         tree_builder = EthereumBuilder()
         tree_builder.add_values(self._flatten())

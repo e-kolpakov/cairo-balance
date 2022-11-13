@@ -1,9 +1,9 @@
 #!/bin/bash
 echo "Generating input"
-python generate_input.py -m stub
+python main.py -s stub
 echo "Compiling cairo program..."
-cairo-compile balance_sum_prover.cairo --proof_mode --output balance_sum_prover.compiled.json
+cairo-compile tlv_prover.cairo --proof_mode --output tlv_prover.compiled.json
 echo "Running cairo program..."
-cairo-run --program=balance_sum_prover.compiled.json --layout=all --print_output --print_info --program_input balance_sum_prover.json --profile_output profile.pb.gz
+cairo-run --program=tlv_prover.compiled.json --layout=all --print_output --print_info --program_input tlv_prover.input.json --profile_output profile.pb.gz
 echo "Cleaning up"
-rm balance_sum_prover.compiled.json
+rm tlv_prover.compiled.json
