@@ -7,7 +7,7 @@ from datetime import datetime, date
 
 from typing import Union, List, Dict, Generic, Any
 
-from utils import DateFormatter, T
+from disk_cache import DateFormatter, T
 
 class JsonProtocolInterface(Generic[T], abc.ABC):
     @abc.abstractmethod

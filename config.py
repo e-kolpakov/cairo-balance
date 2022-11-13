@@ -50,5 +50,6 @@ ETH2_PRATER_API =  raw_config["eth2_prater_api"]
 WEB3_CACHE_LOCATION = "./cache/web3"
 LIDO_CACHE_LOCATION = "./cache/lido"
 ETH2_CACHE_LOCATION = "./cache/eth2"
+USE_CACHE = True
 # DEBUG = True
 DEBUG = False

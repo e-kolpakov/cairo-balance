@@ -4,8 +4,8 @@ import unittest
 
 import ddt
 
-from eth_progressive_merkle_tree_reference_impl import testdata, branch_by_branch
-import merkle_tree
+from merkle.eth_progressive_merkle_tree_reference_impl import testdata, branch_by_branch
+from merkle import merkle_tree
 
 from hypothesis import strategies as st, given, note, settings, example
 

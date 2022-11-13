@@ -11,12 +11,3 @@ func keccak2{range_check_ptr}(left: Uint256, right: Uint256) -> (res: Uint256):
     let (res) = unsafe_keccak_finalize(keccak_state=keccak_state)
     return (res=res)
 end
-
-# func account_keccak{range_check_ptr}(account: Account) -> (res: Uint256):
-#     alloc_locals
-#     let (ptr) = alloc()
-#     assert [ptr] = account.address
-#     assert [ptr+1] = account.balance
-
-#     return keccak_felts(2, ptr)
-# end

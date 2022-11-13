@@ -17,7 +17,7 @@ import config
 
 sys.path.insert(0, os.getcwd())
 
-from merkle_tree import EthereumBuilder, MerkleTreeNode
+from merkle.merkle_tree import EthereumBuilder, MerkleTreeNode
 from utils import IntUtils
 
 from starkware.cairo.sharp.sharp_client import init_client
@@ -57,7 +57,7 @@ def read_cairo_hash(cairo_output: List[int]) -> int:
 
 
 def example_inputs():
-    from eth_progressive_merkle_tree_reference_impl import testdata
+    from merkle.eth_progressive_merkle_tree_reference_impl import testdata
     return [
         (f"count_0", []),
         (f"count_1", testdata[:1]),
