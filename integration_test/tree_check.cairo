@@ -3,7 +3,7 @@
 from starkware.cairo.common.cairo_builtins import BitwiseBuiltin
 from starkware.cairo.common.uint256 import Uint256
 from starkware.cairo.common.serialize import serialize_word
-from merkle_tree import calc_zerohashes, branch_by_branch
+from merkle_tree import calc_zerohashes, branch_by_branch, branch_by_branch_with_start_and_end
 
 from model import serialize_uint256
 
@@ -56,7 +56,9 @@ func main{output_ptr : felt*, range_check_ptr, bitwise_ptr: BitwiseBuiltin*}():
 
     let (local values, input_size) = read_input()
     # let (local zerohashes: Uint256*, _) = calc_zerohashes(TREE_DEPTH)
-    let (local merkle_tree_root: Uint256) = branch_by_branch(values, input_size)
+    # let (local merkle_tree_root: Uint256) = branch_by_branch(values, input_size)
+    let values_end = values + input_size * Uint256.SIZE
+    let (local merkle_tree_root: Uint256) = branch_by_branch_with_start_and_end(values, values_end)
     serialize_uint256(merkle_tree_root)
     return ()
 end

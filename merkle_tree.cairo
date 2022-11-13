@@ -186,3 +186,8 @@ func branch_by_branch{range_check_ptr, bitwise_ptr: BitwiseBuiltin*}(values: Uin
     let (branches_start, branches_end) = dict_squash(branches_start, branches_end)
     return (res=merkle_tree_root)
 end
+
+func branch_by_branch_with_start_and_end{range_check_ptr, bitwise_ptr: BitwiseBuiltin*}(values_start: Uint256*, values_end: Uint256*) -> (res: Uint256):
+    let size = (values_end - values_start) / Uint256.SIZE
+    return branch_by_branch(values_start, size)
+end
