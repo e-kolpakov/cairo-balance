@@ -46,6 +46,9 @@ class MerkleTreeNode:
     def hash_hex(self) -> HexStr:
         return IntUtils.hex_str_from_bytes(self.hash(), 'big', False)
 
+    def hash_int(self) -> int:
+        return IntUtils.from_bytes(self.hash(), 'big', False)
+
 
 class MerkleTreeLeafNode(MerkleTreeNode):
     def __init__(self, hash: bytes, label=None):

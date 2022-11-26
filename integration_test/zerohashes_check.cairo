@@ -1,4 +1,4 @@
-%builtins output range_check bitwise
+%builtins output range_check
 
 from starkware.cairo.common.uint256 import Uint256
 from starkware.cairo.common.serialize import serialize_word
@@ -15,7 +15,7 @@ func serialize_uint256_array{output_ptr : felt*}(current_element: Uint256*, size
 end
 
 
-func main{output_ptr : felt*, range_check_ptr, bitwise_ptr: BitwiseBuiltin*}():
+func main{output_ptr : felt*, range_check_ptr}():
     alloc_locals
     const TREE_DEPTH = 32
     let (local zerohashes: Uint256*, _) = calc_zerohashes(TREE_DEPTH)
