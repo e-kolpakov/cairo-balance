@@ -4,7 +4,7 @@ from dataclasses import asdict
 
 from datetime import date, datetime
 from eth_typing import HexStr
-from typing import Union
+from typing import Union, List
 from backports import Literal
 from keccak_utils import KeccakInput
 
@@ -75,10 +75,6 @@ class IntUtils:
     def to_keccak_input(cls, value: int, size_hint=32, signed=False) -> KeccakInput:
         """
         Actual output length should be multiple of 32
-        :param value:
-        :param size:
-        :param signed:
-        :return:
         """
         size = 32 * ceil(size_hint / 32)
         while size < cls.MAX_SIZE:
@@ -87,6 +83,10 @@ class IntUtils:
             except OverflowError:
                 # hint was wrong, let's try and find the actual size that fits
                 size += 32
+
+    @classmethod
+    def slice_into_bytes(cls, value: KeccakInput, size = 32) -> List[KeccakInput]:
+        pass
 
     @classmethod
     def read_pair_into_hash(cls, high, low) -> int:

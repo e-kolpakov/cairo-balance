@@ -24,7 +24,7 @@ common_test_cases = [
 ]
 
 def get_merkle_tree_from_eth_builder(input_data):
-    tree = merkle_tree.EthereumBuilder()
+    tree = merkle_tree.ProgressiveMerkleTreeBuilder()
     tree.add_values(input_data)
     return tree.build().hash()
 

@@ -4,18 +4,11 @@ import sys
 
 import os
 
-import json
-
-import tempfile
-
 from typing import TypeVar, Generic, Any, Dict, List, Optional
 
 import logging
-from starkware.cairo.sharp.sharp_client import init_client, SharpClient
 import config
-from src.starkware.cairo.bootloaders.generate_fact import get_program_output
-from src.starkware.cairo.lang.compiler.program import Program
-from utils import IntUtils
+from cairo import CairoInterface
 
 T = TypeVar('T')
 S = TypeVar('S')
@@ -24,34 +17,20 @@ class CairoTestHelper(Generic[T]):
     LOGGER = logging.getLogger(__name__ + ".CairoTestHelper")
 
     def __init__(self, bin_dir, node_rpc_url, program, cairo_path=None):
-        self.LOGGER.info(f"Initializing Cairo client")
-        self.cairo_sharp_client = init_client(bin_dir=bin_dir, node_rpc_url=node_rpc_url)
-        self.compile_flags = []
-        if cairo_path is not None:
-            self.compile_flags.append(f'--cairo_path={config.PROJECT_ROOT}')
-        self.LOGGER.info(f"Compiling cairo program {program}")
-        self.program = self.cairo_sharp_client.compile_cairo(source_code_path=program, flags=self.compile_flags)
+        self.cairo_interface = CairoInterface(bin_dir, node_rpc_url, program, serializer=lambda x: x, cairo_path=cairo_path)
 
-    def _store_input_copy(self, program_input: Dict[str, Any], store_input_copy: str, label=""):
+    def _store_input_filename(self, store_input_copy: str, label="") -> str:
         filename, file_extension = os.path.splitext(store_input_copy)
         target_filename = filename if not label else f"{filename}_{label}"
-        write_copy_to = f"{target_filename}{file_extension}"
-        self.LOGGER.debug(f"Storing a copy of input file in {write_copy_to}")
-        with open(write_copy_to, 'w') as target_file:
-            json.dump(program_input, target_file, indent=4, sort_keys=True)
+        return f"{target_filename}{file_extension}"
 
     def run_program(self, program_input: Dict[str, Any], label=None, store_input_copy: Optional[str]=None) -> T:
-        if store_input_copy is not None:
-            self._store_input_copy(program_input, store_input_copy, label)
-
-        with tempfile.NamedTemporaryFile(mode="w") as program_input_file:
-            json.dump(program_input, program_input_file, indent=4, sort_keys=True)
-            program_input_file.flush()
-            self.LOGGER.info(f"Running cairo program")
-            cairo_pie = self.cairo_sharp_client.run_program(self.program, program_input_file.name)
-            output = get_program_output(cairo_pie)
-            self.LOGGER.debug(f"Cairo program run successfully - parsing output")
-            result = self._parse_output(output)
+        input_copy = None if store_input_copy is None else self._store_input_filename(store_input_copy, label)
+        output = self.cairo_interface.run(program_input, input_copy)
+        self.LOGGER.info(f"Cairo program run successfully - parsing output")
+        repr_output = "\n".join(str(val) for val in output)
+        self.LOGGER.debug(f"Cairo output:\n{repr_output}")
+        result = self._parse_output(output)
         return result
 
     def _parse_output(self, output: List[int]) -> T:
@@ -101,7 +80,7 @@ class ExampleRunnerHelper(Generic[T, S]):
                 )
 
         if has_error:
-            self.LOGGER.error("Error - one or more Merkle Tree root were different. See above for details")
+            self.LOGGER.error("Error - one or more examples did not match. See above for details")
             sys.exit(1)
         else:
             print("All inputs run successfully")

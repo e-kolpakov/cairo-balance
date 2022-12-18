@@ -17,7 +17,7 @@ from web3.beacon import Beacon
 
 from disk_cache.cache import TypedJsonDiskCache
 from keccak_utils import KeccakInput
-from merkle.merkle_tree import MerkleTreeRoot, MerkleTreeNode, MerkleTreeLeafNode, EthereumBuilder
+from merkle.merkle_tree import MerkleTreeNode, ProgressiveMerkleTreeBuilder
 from utils import AsDict, IntUtils
 
 
@@ -75,16 +75,32 @@ class BeaconState:
         """
         result = []
         for validator in self.validators:
-            result.append(IntUtils.to_keccak_input(validator.pubkey_int, size_hint=48))
+            result.extend(self._pubkey_to_keccak_input(validator.pubkey_int))
             result.append(IntUtils.to_keccak_input(validator.balance_int, size_hint=32))
 
         return result
 
+    def _pubkey_to_keccak_input(self, pubkey: int) -> List[KeccakInput]:
+        """
+        See "Merkle tree leaves content" section in readme for more details
+        """
+        pubkey_bytes = IntUtils.to_keccak_input(pubkey, size_hint=48)
+        # "Straightforward" implementation - no limitations on leaf content
+        # return pubkey_bytes
+        # "shortcut" implementation - only 32-byte values are allowed
+        return [
+            pubkey_bytes[:32],
+            pubkey_bytes[32:]
+        ]
+
+    def merkle_tree_builder(self) -> ProgressiveMerkleTreeBuilder:
+        tree_builder = ProgressiveMerkleTreeBuilder()
+        tree_builder.add_values(self._flatten())
+        return tree_builder
+
     # @functools.cached_property - TODO: this is not available in python 3.7
     def merkle_tree_root(self) -> MerkleTreeNode:
-        tree_builder = EthereumBuilder()
-        tree_builder.add_values(self._flatten())
-        return tree_builder.build()
+        return self.merkle_tree_builder().build()
 
     def to_cairo(self) -> BeaconStateCairoSerialized:
         return {

@@ -16,7 +16,7 @@ from typing import List, Dict, Any
 import config
 from utils import IntUtils
 from keccak_utils import KeccakHash
-from merkle.merkle_tree import EthereumBuilder
+from merkle.merkle_tree import ProgressiveMerkleTreeBuilder
 
 
 TREE_CHECK_CAIRO_SOURCE_PATH = os.path.join(os.path.dirname(__file__), "zerohashes_check.cairo")
@@ -51,7 +51,7 @@ class ExampleRunner(ExampleRunnerHelper[int, ExampleType]):
         return {}
 
     def example_to_expected_outpiut(self, example) -> ExampleType:
-        tree_builder = EthereumBuilder()
+        tree_builder = ProgressiveMerkleTreeBuilder()
         return [
             node.hash_hex() for node in tree_builder.zerohashes
         ]

@@ -7,7 +7,7 @@ from integration_test.testutils import CairoTestHelper, ExampleRunnerHelper, get
 
 sys.path.insert(0, os.getcwd())
 
-from merkle.merkle_tree import EthereumBuilder
+from merkle.merkle_tree import ProgressiveMerkleTreeBuilder
 from utils import IntUtils
 
 TREE_CHECK_CAIRO_SOURCE_PATH = os.path.join(os.path.dirname(__file__), "tree_check.cairo")
@@ -22,7 +22,7 @@ class CairoHelper(CairoTestHelper[int]):
 
 
 class ExampleRunner(ExampleRunnerHelper[List[bytes], int]):
-    def examples(self) -> List[(str, List[bytes])]:
+    def examples(self):
         from merkle.eth_progressive_merkle_tree_reference_impl import testdata
         return [
             (f"count_0", []),
@@ -43,7 +43,7 @@ class ExampleRunner(ExampleRunnerHelper[List[bytes], int]):
         }
 
     def example_to_expected_outpiut(self, example) -> int:
-        tree_builder = EthereumBuilder()
+        tree_builder = ProgressiveMerkleTreeBuilder()
         tree_builder.add_values(example)
         return tree_builder.build().hash_int()
 

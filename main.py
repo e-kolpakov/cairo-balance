@@ -19,6 +19,7 @@ DESTINATION_FOLDER = "."
 
 LOGGER = logging.getLogger(__name__)
 
+
 class DataSource(enum.Enum):
     STUB = 'stub'
     GEN = "gen"
@@ -29,6 +30,7 @@ class EnumAction(argparse.Action):
     """
     Argparse action for handling Enums
     """
+
     def __init__(self, **kwargs):
         # Pop off the type value
         enum_type = kwargs.pop("type", None)
@@ -146,6 +148,7 @@ def assert_equal(label, python_mtr: str, cairo_mtr: str):
         LOGGER.error(message)
         raise AssertionError(message)
 
+
 def main():
     args = ArgumentParser().parse_args()
 
@@ -162,7 +165,9 @@ def main():
 
     LOGGER.info("Creating Cairo interface")
     cairo_interface = CairoInterface(
-        args.bin_dir, args.node_rpc_url, config.CairoApps.TLV_PROVER, cairo_path=config.PROJECT_ROOT
+        args.bin_dir, args.node_rpc_url, config.CairoApps.TLV_PROVER,
+        serializer=lambda payload: payload.to_cairo,
+        cairo_path=config.PROJECT_ROOT
     )
 
     LOGGER.info("Running the program")

@@ -15,13 +15,13 @@ end
 struct BeaconState:
     member validators_count: felt
     member validators: Validator*
-    member merkle_tree_root: Uint256
+    # member merkle_tree_root: Uint256
 end
 
 struct ValidatorKeys:
     member keys_count: felt
     member keys: Eth2ValidatorKey*
-    member merkle_tree_root: Uint256
+    # member merkle_tree_root: Uint256
 end
 
 
@@ -89,4 +89,43 @@ func flatten_validator_keys_inner(key: Eth2ValidatorKey*, count: felt, target: U
         count = count - 1,
         target = target + 2 * Uint256.SIZE
     )
+end
+
+func read_beacon_state() -> (res: BeaconState):
+    alloc_locals
+    local beacon_state: BeaconState
+    %{
+        # Expects dependencies:
+        # * read_uint256_to_memory
+        # * beacon_state_input
+        # * read_validator_key_to_memory
+        beacon_state = beacon_state_input
+        validators = beacon_state['validators']
+        # beacon_state_mtr = int(program_input['beacon_state_mtr'], 16)
+
+
+        BEACON_STATE_VALIDATOR_COUNT = ids.BeaconState.validators_count
+        BEACON_STATE_VALIDATORS = ids.BeaconState.validators
+        #BEACON_STATE_MTR = ids.BeaconState.merkle_tree_root
+
+        VALIDATOR_BALANCE = ids.Validator.balance
+        VALIDATOR_KEY = ids.Validator.key
+        VALIDATOR_SIZE = ids.Validator.SIZE
+
+        KEY_HIGH = ids.Eth2ValidatorKey.high
+        KEY_LOW = ids.Eth2ValidatorKey.high
+
+        beacon_state_addr = ids.beacon_state.address_
+        beacon_state_validators = segments.add()
+        memory[beacon_state_addr + BEACON_STATE_VALIDATOR_COUNT] = len(validators)
+        memory[beacon_state_addr + BEACON_STATE_VALIDATORS] = beacon_state_validators
+        #read_uint256_to_memory(beacon_state_mtr, beacon_state_addr + BEACON_STATE_MTR)
+
+        for (idx, validator) in enumerate(validators):
+            current_addr = beacon_state_validators + idx * VALIDATOR_SIZE
+            read_validator_key_to_memory(int(validator["pubkey"], 16), current_addr + VALIDATOR_KEY)
+            read_uint256_to_memory(int(validator["balance"]), current_addr + VALIDATOR_BALANCE)
+
+    %}
+    return (res=beacon_state)
 end

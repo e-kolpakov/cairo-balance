@@ -133,7 +133,7 @@ class TopDownBuilder:
             return value // 2
 
 
-class EthereumBuilder:
+class ProgressiveMerkleTreeBuilder:
     """
     Replica of https://github.com/ethereum/research/blob/master/beacon_chain_impl/progressive_merkle_tree.py
     With some modifications to be more cairo-friendly - test_merkle_tree.py ensures the result match reference
@@ -167,6 +167,8 @@ class EthereumBuilder:
     # Add a value to a Merkle tree by using the algo
     # that stores a branch of sub-roots
     def _add_value(self, value: KeccakInput, index: int) -> None:
+        # See "Merkle tree leaves content" section in readme for the reasoning behind this assertion
+        assert len(value) == 32, "Values should be 32 byte long"
         cur_node = MerkleTreeLeafNode(value, label=f"leaf-{index}")
         # i = 0
         # while (index + 1) % (2 ** (i + 1)) == 0:
@@ -206,6 +208,9 @@ class EthereumBuilder:
             if DEBUG:
                 self.LOGGER.debug(f"h{height}-zerohash, {new_node.hash_hex()}")
         return self._get_root_from_branch_rec(size, new_node, height + 1, mask * 2)
+
+    def get_leaves(self) -> List[KeccakInput]:
+        return self._values
 
     def build(self) -> MerkleTreeNode:
         # Construct the tree using the branch-based algo

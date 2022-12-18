@@ -32,7 +32,16 @@ LOGGER_CONFIG = {
         #     'formatter': 'detailed',
         # }
     },
-    'loggers': {},
+    'loggers': {
+        'cairo.JsonDiskCache': {
+            'level': 'INFO',
+            'handlers': ['console']
+        },
+        'integration_test.testutils.CairoTestHelper': {
+            'level': 'INFO',
+            'handlers': ['console']
+        }
+    },
     'root': {
         'level': LOG_LEVEL,
         'handlers': ['console']
