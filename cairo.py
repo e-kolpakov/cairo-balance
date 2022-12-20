@@ -38,7 +38,8 @@ class CairoInterface(Generic[T]):
 
     def run(self, payload: T, store_input: str = None) -> List[int]:
         self.LOGGER.info("Serializing payload to json")
-        program_input_serialized = json.dumps(self._serializer(payload), indent=4, sort_keys=True, cls=CustomJsonEncoder)
+        payload = self._serializer(payload)
+        program_input_serialized = json.dumps(payload, indent=4, sort_keys=True, cls=CustomJsonEncoder)
 
         if store_input:
             self.LOGGER.debug(f"Storing input at {store_input}")

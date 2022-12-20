@@ -1,7 +1,7 @@
 import logging
 
 from eth_typing import HexStr
-from typing import List, Any, Optional
+from typing import List, Any, Optional, Iterable
 
 from keccak_utils import keccak, keccak2, KeccakInput, KeccakHash
 from utils import IntUtils, BytesUtils
@@ -160,7 +160,7 @@ class ProgressiveMerkleTreeBuilder:
     def add_value(self, value: KeccakInput):
         self._values.append(BytesUtils.pad_to_32_multiple(value))
 
-    def add_values(self, values: List[KeccakInput]):
+    def add_values(self, values: Iterable[KeccakInput]):
         for value in values:
             self.add_value(value)
 

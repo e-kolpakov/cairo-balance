@@ -97,3 +97,17 @@ class IntUtils:
     def read_pair_into_hex_str(cls, high, low) -> HexStr:
         hash = cls.read_pair_into_hash(high, low)
         return cls.to_hex_str(hash)
+
+    @classmethod
+    def pubkey_to_keccak_input(cls, pubkey: int) -> List[KeccakInput]:
+        """
+        See "Merkle tree leaves content" section in readme for more details
+        """
+        pubkey_bytes = IntUtils.to_keccak_input(pubkey, size_hint=48)
+        # "Straightforward" implementation - no limitations on leaf content
+        # return pubkey_bytes
+        # "shortcut" implementation - only 32-byte values are allowed
+        return [
+            pubkey_bytes[:32],
+            pubkey_bytes[32:]
+        ]

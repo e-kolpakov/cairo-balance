@@ -6,7 +6,7 @@ import config
 import logging
 
 from dataclasses_json import DataClassJsonMixin
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Generator, Iterator
 from backports import TypedDict
 
 from dataclasses import dataclass
@@ -65,7 +65,7 @@ class BeaconState:
     def find_validator(self, pubkey: HexStr) -> Optional[Validator]:
         return self._validator_lookup.get(int(pubkey, 16))
 
-    def _flatten(self) -> List[KeccakInput]:
+    def _flatten(self) -> Iterator[KeccakInput]:
         """
         MerkleTree needs the input to be a list of `bytes` or `bytearray`s
         This function "flattens" the BeaconState to that shape
@@ -73,25 +73,9 @@ class BeaconState:
         Note: "layout" matters - if order of fields is changed, the hash will be different
         :return:
         """
-        result = []
         for validator in self.validators:
-            result.extend(self._pubkey_to_keccak_input(validator.pubkey_int))
-            result.append(IntUtils.to_keccak_input(validator.balance_int, size_hint=32))
-
-        return result
-
-    def _pubkey_to_keccak_input(self, pubkey: int) -> List[KeccakInput]:
-        """
-        See "Merkle tree leaves content" section in readme for more details
-        """
-        pubkey_bytes = IntUtils.to_keccak_input(pubkey, size_hint=48)
-        # "Straightforward" implementation - no limitations on leaf content
-        # return pubkey_bytes
-        # "shortcut" implementation - only 32-byte values are allowed
-        return [
-            pubkey_bytes[:32],
-            pubkey_bytes[32:]
-        ]
+            yield from IntUtils.pubkey_to_keccak_input(validator.pubkey_int)
+            yield IntUtils.to_keccak_input(validator.balance_int, size_hint=32)
 
     def merkle_tree_builder(self) -> ProgressiveMerkleTreeBuilder:
         tree_builder = ProgressiveMerkleTreeBuilder()

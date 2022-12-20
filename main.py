@@ -91,8 +91,12 @@ class ArgumentParser(Tap):
             default=RangeMode.SMALL
         )
         self.add_argument(
-            "-c", "--count", required=False, default=20,
-            help="Number of addresses to generate",
+            "-ce", "--count_eth", required=False, default=100,
+            help="Number of ethereum validators to generate",
+        )
+        self.add_argument(
+            "-cl", "--count_lido", required=False, default=20,
+            help="Number of lido validators to generate",
         )
         self.add_argument(
             "-a", "--address_range", action=EnumAction, type=RangeMode,
@@ -166,7 +170,7 @@ def main():
     LOGGER.info("Creating Cairo interface")
     cairo_interface = CairoInterface(
         args.bin_dir, args.node_rpc_url, config.CairoApps.TLV_PROVER,
-        serializer=lambda payload: payload.to_cairo,
+        serializer=lambda payload: payload.to_cairo(),
         cairo_path=config.PROJECT_ROOT
     )
 
