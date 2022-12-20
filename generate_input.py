@@ -5,8 +5,6 @@ from decimal import Decimal
 import logging
 
 import enum
-import json
-import os
 import random
 import sys
 from eth_typing import HexStr
@@ -56,11 +54,28 @@ class Range:
     def __repr__(self):
         return f"[{self._low}:{self._high}]"
 
-    def sample_unique(self, count: int) -> Iterator[int]:
-        return random.sample(range(self._low, self._high), count)
-
-    def sample(self, count: int):
-        return random.choices(range(self._low, self._high), k=count)
+    def sample(self, count: int, unique=False) -> Iterator[int]:
+        if self.size < sys.maxsize:
+            if unique:
+                yield from random.sample(range(self._low, self._high), count)
+            else:
+                yield from random.choices(range(self._low, self._high), k=count)
+        else:
+            # doing the above would result in OverflowError: Python int too large to convert to C ssize_t
+            if unique:
+                assert count < (self.size // 100), "too many values to generate - " \
+                                                   "cannot guarantee generating unique values efficiently"
+            seen = set()
+            for _idx in range(count):
+                should_generate = True
+                while should_generate:
+                    new_val = random.randint(self._low, self._high)
+                    if unique:
+                        should_generate = new_val in seen
+                        seen.add(new_val)
+                    else:
+                        should_generate = False
+                    yield new_val
 
 
 class ValueRange(Range):
@@ -161,14 +176,14 @@ def stub():
 
 
 def generate(
-        address_range_mode: RangeMode, value_range_mode: RangeMode, eth_count: int, lido_count: int
+        address_range_mode: RangeMode, value_range_mode: RangeMode, count_eth: int, count_lido: int
 ) -> ProverPayload:
-    assert eth_count >= lido_count, "Eth count must be greater or equal than lido_count"
+    assert count_eth >= count_lido, "Eth count must be greater or equal than lido_count"
     address_range = AddressRange.get_range(address_range_mode)
     value_range = AddressRange.get_range(value_range_mode)
-    unique_addresses = list(address_range.sample_unique(eth_count))
-    balances = list(value_range.sample(lido_count))
-    lido_operator_keys = random.sample(unique_addresses, lido_count)
+    unique_addresses = list(address_range.sample(count_eth, unique=True))
+    balances = list(value_range.sample(count_eth))
+    lido_operator_keys = random.sample(unique_addresses, count_lido)
 
     validators = []
     for (key, balance) in zip(unique_addresses, balances):
@@ -186,4 +201,3 @@ def generate(
         operators.append(OperatorKeyAdapter(operator_key))
     lido_operators = LidoOperatorList(operators)
     return ProverPayload(beacon_state=beacon_state, lido_operators=lido_operators)
-
