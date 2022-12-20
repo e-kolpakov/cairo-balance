@@ -1,5 +1,7 @@
 from starkware.cairo.common.uint256 import Uint256
 from starkware.cairo.common.serialize import serialize_word
+from starkware.cairo.common.math import split_felt
+from starkware.cairo.common.registers import get_fp_and_pc
 
 # Validator keys are 96 hex => 48 bytes => 2**384 - higher than what fits into felt
 struct Eth2ValidatorKey:
@@ -9,7 +11,7 @@ end
 
 struct Validator:
     member key: Eth2ValidatorKey
-    member balance: Uint256
+    member balance: felt
 end
 
 struct BeaconState:
@@ -40,7 +42,15 @@ func serialize_uint256{output_ptr : felt*}(value: Uint256):
     return()
 end
 
-func flatten_beacon_state(beacon_state: BeaconState, target: Uint256*) -> (res: Uint256*):
+func assert_key_equal(left: Eth2ValidatorKey, right: Eth2ValidatorKey):
+    assert left.high.high = right.high.high
+    assert left.high.low = right.high.low
+    assert left.low.high = right.low.high
+    assert left.low.low = right.low.low
+    return()
+end
+
+func flatten_beacon_state{range_check_ptr}(beacon_state: BeaconState, target: Uint256*) -> (res: Uint256*):
     return flatten_validators(
         validator = beacon_state.validators,
         count = beacon_state.validators_count,
@@ -48,7 +58,7 @@ func flatten_beacon_state(beacon_state: BeaconState, target: Uint256*) -> (res: 
     )
 end
 
-func flatten_validators(validator: Validator*, count: felt, target: Uint256*) -> (res: Uint256*):
+func flatten_validators{range_check_ptr}(validator: Validator*, count: felt, target: Uint256*) -> (res: Uint256*):
     if count == 0:
         return (res=target)
     end
@@ -61,10 +71,11 @@ func flatten_validators(validator: Validator*, count: felt, target: Uint256*) ->
     )
 end
 
-func flatten_validator(validator: Validator*, target: Uint256*) -> (res: Uint256*):
+func flatten_validator{range_check_ptr}(validator: Validator*, target: Uint256*) -> (res: Uint256*):
     assert target[0] = validator.key.high
     assert target[1] = validator.key.low
-    assert target[2] = validator.balance
+    let (high, low) = split_felt(validator.balance)
+    assert target[2] = Uint256(low=low, high=high)
     return (res=target + 3 * Uint256.SIZE)
 end
 
@@ -129,7 +140,7 @@ func init_hints():
     return()
 end
 
-func read_beacon_state() -> (res: BeaconState):
+func read_beacon_state() -> (res: BeaconState*):
     alloc_locals
     local beacon_state: BeaconState
     init_hints()
@@ -142,6 +153,7 @@ func read_beacon_state() -> (res: BeaconState):
         validators = beacon_state['validators']
         # beacon_state_mtr = int(program_input['beacon_state_mtr'], 16)
 
+        validators_lookup = dict()
 
         BEACON_STATE_VALIDATOR_COUNT = ids.BeaconState.validators_count
         BEACON_STATE_VALIDATORS = ids.BeaconState.validators
@@ -162,20 +174,24 @@ func read_beacon_state() -> (res: BeaconState):
 
         for (idx, validator) in enumerate(validators):
             current_addr = beacon_state_validators + idx * VALIDATOR_SIZE
-            read_validator_key_to_memory(int(validator["pubkey"], 16), current_addr + VALIDATOR_KEY)
-            read_uint256_to_memory(int(validator["balance"]), current_addr + VALIDATOR_BALANCE)
+            key, balance = int(validator["pubkey"], 16), int(validator["balance"])
+            validators_lookup[key] = balance
+            read_validator_key_to_memory(key, current_addr + VALIDATOR_KEY)
+            # read_uint256_to_memory(balance, current_addr + VALIDATOR_BALANCE)
+            memory[current_addr + VALIDATOR_BALANCE] = balance
 
     %}
-    return (res=beacon_state)
+    let (__fp__, _) = get_fp_and_pc()  # needed for &new_hash to work
+    return (res=&beacon_state)
 end
 
-func read_validator_keys() -> (res: ValidatorKeys):
+func read_validator_keys() -> (res: ValidatorKeys*):
     alloc_locals
     local validator_keys: ValidatorKeys
     init_hints()
     %{
         # Expects dependencies:
-        # * validator_keys
+        # * validator_keys_input
         # * read_validator_key_to_memory
         VALIDATOR_KEYS_COUNT = ids.ValidatorKeys.keys_count
         VALIDATOR_KEYS_KEYS = ids.ValidatorKeys.keys
@@ -185,13 +201,14 @@ func read_validator_keys() -> (res: ValidatorKeys):
         # validator_keys_mtr = int(program_input['validator_keys_mtr'], 16)
         validator_keys_addr = ids.validator_keys.address_
         keys = segments.add()
-        memory[validator_keys_addr + VALIDATOR_KEYS_COUNT] = len(validator_keys)
+        memory[validator_keys_addr + VALIDATOR_KEYS_COUNT] = len(validator_keys_input)
         memory[validator_keys_addr + VALIDATOR_KEYS_KEYS] = keys
         #read_uint256_to_memory(validator_keys_mtr, validator_keys_addr + VALIDATOR_KEYS_MTR)
 
-        for (idx, key) in enumerate(validator_keys):
+        for (idx, key) in enumerate(validator_keys_input):
             current_addr = keys + idx * KEY_SIZE
             read_validator_key_to_memory(int(key, 16), current_addr)
     %}
-    return (res=validator_keys)
+    let (__fp__, _) = get_fp_and_pc()  # needed for &new_hash to work
+    return (res=&validator_keys)
 end
