@@ -187,7 +187,7 @@ def main():
         raise
     LOGGER.debug("Cairo output %s", parsed_output)
 
-    LOGGER.info("Checking merkle tree roots match")
+    LOGGER.info("Checking merkle tree roots and total value locked match")
     assert_equal(
         "BeaconState Merkle Tree Roots",
         prover_payload.beacon_state.merkle_tree_root().hash_hex(),

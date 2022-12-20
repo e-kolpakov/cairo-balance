@@ -89,13 +89,13 @@ class IntUtils:
         pass
 
     @classmethod
-    def read_pair_into_hash(cls, high, low) -> int:
+    def read_pair_into_int(cls, high, low) -> int:
         as_bytes = high.to_bytes(16, 'big', signed=False) + low.to_bytes(16, 'big', signed=False)
         return IntUtils.from_bytes(as_bytes, 'big', signed=False)
 
     @classmethod
     def read_pair_into_hex_str(cls, high, low) -> HexStr:
-        hash = cls.read_pair_into_hash(high, low)
+        hash = cls.read_pair_into_int(high, low)
         return cls.to_hex_str(hash)
 
     @classmethod

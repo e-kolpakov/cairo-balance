@@ -91,9 +91,48 @@ func flatten_validator_keys_inner(key: Eth2ValidatorKey*, count: felt, target: U
     )
 end
 
+func init_hints():
+    %{
+        def split_uint256(value):
+            as_bytes = value.to_bytes(32, 'big', signed=False)
+            return (
+                int.from_bytes(as_bytes[:16], 'big', signed=False),
+                int.from_bytes(as_bytes[16:32], 'big', signed=False),
+            )
+
+        def split_uint384(value):
+            as_bytes = value.to_bytes(64, 'big', signed=False)
+            return (
+                int.from_bytes(as_bytes[:16], 'big', signed=False),
+                int.from_bytes(as_bytes[16:32], 'big', signed=False),
+                int.from_bytes(as_bytes[32:48], 'big', signed=False),
+                int.from_bytes(as_bytes[48:64], 'big', signed=False),
+            )
+
+        VALIDATOR_KEY_HIGH = ids.Eth2ValidatorKey.high
+        VALIDATOR_KEY_LOW = ids.Eth2ValidatorKey.low
+        UINT_LOW_OFFSET = ids.Uint256.low
+        UINT_HIGH_OFFSET = ids.Uint256.high
+
+        def read_validator_key_to_memory(validator_key, memory_offset):
+            (hh, hl, lh, ll) = split_uint384(validator_key)
+            memory[memory_offset + VALIDATOR_KEY_HIGH + UINT_HIGH_OFFSET] = hh
+            memory[memory_offset + VALIDATOR_KEY_HIGH + UINT_LOW_OFFSET] = hl
+            memory[memory_offset + VALIDATOR_KEY_LOW + UINT_HIGH_OFFSET] = lh
+            memory[memory_offset + VALIDATOR_KEY_LOW + UINT_LOW_OFFSET] = ll
+
+        def read_uint256_to_memory(uint256, memory_offset):
+            high, low = split_uint256(uint256)
+            memory[memory_offset + UINT_HIGH_OFFSET] = high
+            memory[memory_offset + UINT_LOW_OFFSET] = low
+    %}
+    return()
+end
+
 func read_beacon_state() -> (res: BeaconState):
     alloc_locals
     local beacon_state: BeaconState
+    init_hints()
     %{
         # Expects dependencies:
         # * read_uint256_to_memory
@@ -128,4 +167,31 @@ func read_beacon_state() -> (res: BeaconState):
 
     %}
     return (res=beacon_state)
+end
+
+func read_validator_keys() -> (res: ValidatorKeys):
+    alloc_locals
+    local validator_keys: ValidatorKeys
+    init_hints()
+    %{
+        # Expects dependencies:
+        # * validator_keys
+        # * read_validator_key_to_memory
+        VALIDATOR_KEYS_COUNT = ids.ValidatorKeys.keys_count
+        VALIDATOR_KEYS_KEYS = ids.ValidatorKeys.keys
+        # VALIDATOR_KEYS_MTR = ids.ValidatorKeys.merkle_tree_root
+        KEY_SIZE = ids.Eth2ValidatorKey.SIZE
+        
+        # validator_keys_mtr = int(program_input['validator_keys_mtr'], 16)
+        validator_keys_addr = ids.validator_keys.address_
+        keys = segments.add()
+        memory[validator_keys_addr + VALIDATOR_KEYS_COUNT] = len(validator_keys)
+        memory[validator_keys_addr + VALIDATOR_KEYS_KEYS] = keys
+        #read_uint256_to_memory(validator_keys_mtr, validator_keys_addr + VALIDATOR_KEYS_MTR)
+
+        for (idx, key) in enumerate(validator_keys):
+            current_addr = keys + idx * KEY_SIZE
+            read_validator_key_to_memory(int(key, 16), current_addr)
+    %}
+    return (res=validator_keys)
 end
