@@ -60,7 +60,8 @@ class ArgumentParser(Tap):
     bin_dir: str
     node_rpc_url: str
 
-    count: int
+    count_eth: int
+    count_lido: int
     address_range: RangeMode
     value_range: RangeMode
 
@@ -159,7 +160,7 @@ def main():
     if args.source == DataSource.STUB:
         prover_payload = generate_input.stub()
     elif args.source == DataSource.GEN:
-        prover_payload = generate_input.generate(args)
+        prover_payload = generate_input.generate(args.address_range, args.value_range, args.count_eth, args.count_lido)
     elif args.source == DataSource.LIVE:
         prover_payload = get_live_prover_payload()
     else:

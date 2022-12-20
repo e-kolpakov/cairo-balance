@@ -1,3 +1,5 @@
+from hashlib import sha256
+
 from decimal import Decimal
 
 import logging
@@ -9,16 +11,17 @@ import random
 import sys
 from eth_typing import HexStr
 from lido_sdk.methods.typing import OperatorKey
-from typing import TypeVar, Set
+from typing import TypeVar, Set, Iterator
 
 from api.eth_api import BeaconState, Validator
 from api.lido_api import LidoOperatorList, OperatorKeyAdapter
 from model import ProverPayload
-
+from utils import IntUtils
 
 T = TypeVar('T')
 
 LOGGER = logging.getLogger(__name__)
+
 
 class RangeMode(enum.Enum):
     SMALL = 'small'
@@ -29,7 +32,7 @@ class RangeMode(enum.Enum):
 
 
 class EthereumConstants:
-    TOTAL_SUPPLY = int(1e10) # actually, ~100 times less, but it's only a matter of time (500 years at current rate)
+    TOTAL_SUPPLY = int(1e10)  # actually, ~100 times less, but it's only a matter of time (500 years at current rate)
     ETH_TO_WEI = int(1e18)
 
 
@@ -53,6 +56,12 @@ class Range:
     def __repr__(self):
         return f"[{self._low}:{self._high}]"
 
+    def sample_unique(self, count: int) -> Iterator[int]:
+        return random.sample(range(self._low, self._high), count)
+
+    def sample(self, count: int):
+        return random.choices(range(self._low, self._high), k=count)
+
 
 class ValueRange(Range):
     @classmethod
@@ -68,6 +77,7 @@ class ValueRange(Range):
         elif mode == RangeMode.UNRESTRICTED:
             return cls(0, sys.maxsize)
 
+
 class AddressRange(Range):
     def __repr__(self):
         return f"[{hex(self._low)}:{hex(self._high)}]"
@@ -81,7 +91,7 @@ class AddressRange(Range):
         elif mode == RangeMode.WIDE:
             return cls(0, int(1e15))
         elif mode == RangeMode.ETH:
-            return cls(0, 2**160)
+            return cls(0, 2 ** 160)
         elif mode == RangeMode.UNRESTRICTED:
             return cls(0, sys.maxsize)
 
@@ -116,6 +126,7 @@ def generate_many(arguments):
     #     }
     # }
 
+
 def stub():
     key1 = 0x1
     key2 = 0x968ff4505567afa998c734bc85b73e7fd8f1003650af5f47371367cf83cb534dca970234bc96696a91b232e90e173350
@@ -133,12 +144,14 @@ def stub():
             [
                 OperatorKeyAdapter(
                     operator_key=OperatorKey(
-                        index=0, operator_index=0, key=key1.to_bytes(48, 'big', signed=False), depositSignature=b'asdfgh', used=True
+                        index=0, operator_index=0, key=key1.to_bytes(48, 'big', signed=False),
+                        depositSignature=b'asdfgh', used=True
                     )
                 ),
                 OperatorKeyAdapter(
                     operator_key=OperatorKey(
-                        index=1, operator_index=0, key=key2.to_bytes(48, 'big', signed=False), depositSignature=b'qweasd', used=True
+                        index=1, operator_index=0, key=key2.to_bytes(48, 'big', signed=False),
+                        depositSignature=b'qweasd', used=True
                     )
                 )
             ]
@@ -146,5 +159,31 @@ def stub():
     )
     return prover_payload
 
-def generate(arguments):
-    raise ValueError(f"Generation mode {arguments.mode} is yet unsupported")
+
+def generate(
+        address_range_mode: RangeMode, value_range_mode: RangeMode, eth_count: int, lido_count: int
+) -> ProverPayload:
+    assert eth_count >= lido_count, "Eth count must be greater or equal than lido_count"
+    address_range = AddressRange.get_range(address_range_mode)
+    value_range = AddressRange.get_range(value_range_mode)
+    unique_addresses = list(address_range.sample_unique(eth_count))
+    balances = list(value_range.sample(lido_count))
+    lido_operator_keys = random.sample(unique_addresses, lido_count)
+
+    validators = []
+    for (key, balance) in zip(unique_addresses, balances):
+        validator = Validator(IntUtils.to_hex_str(key), Decimal(balance))
+        validators.append(validator)
+    beacon_state = BeaconState(validators)
+
+    operators = []
+    for (index, key) in enumerate(lido_operator_keys):
+        key_bytes = key.to_bytes(48, 'big')
+        operator_key = OperatorKey(
+            index=index, operator_index=index, key=key_bytes,
+            depositSignature=sha256(key_bytes).digest(), used=True
+        )
+        operators.append(OperatorKeyAdapter(operator_key))
+    lido_operators = LidoOperatorList(operators)
+    return ProverPayload(beacon_state=beacon_state, lido_operators=lido_operators)
+
