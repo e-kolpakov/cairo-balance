@@ -1,16 +1,11 @@
-import logging
-from typing import List, Dict, Any
-
 import os, sys
+sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
+
+from typing import List, Dict, Any
 import config
 from integration_test.testutils import CairoTestHelper, ExampleRunnerHelper, get_arg_parser
-
-sys.path.insert(0, os.getcwd())
-
 from merkle.merkle_tree import ProgressiveMerkleTreeBuilder
 from utils import IntUtils
-
-TREE_CHECK_CAIRO_SOURCE_PATH = os.path.join(os.path.dirname(__file__), "tree_check.cairo")
 
 class CairoHelper(CairoTestHelper[int]):
     def _parse_output(self, output: List[int]) -> int:
@@ -52,7 +47,7 @@ def main():
     parser = get_arg_parser()
     args = parser.parse_args()
     cairo_helper = CairoHelper(
-        args.bin_dir, args.node_rpc_url, TREE_CHECK_CAIRO_SOURCE_PATH, cairo_path=config.PROJECT_ROOT
+        args.bin_dir, args.node_rpc_url, config.CairoApps.IntegrationTests.MERKLE_TREE
     )
     runner = ExampleRunner(cairo_helper, args.store_input_copy)
 

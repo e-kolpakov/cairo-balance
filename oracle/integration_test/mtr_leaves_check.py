@@ -1,20 +1,14 @@
+import os, sys
 from decimal import Decimal
-
-import logging
 from eth_typing import HexStr
 from typing import List, Dict, Any
 
-import os, sys
+sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
+
 import config
 from api.eth_api import BeaconState, Validator
 from integration_test.testutils import CairoTestHelper, ExampleRunnerHelper, get_arg_parser
 
-sys.path.insert(0, os.getcwd())
-
-from merkle.merkle_tree import ProgressiveMerkleTreeBuilder
-from utils import IntUtils
-
-PROGRAM_PATH = os.path.join(os.path.dirname(__file__), "mtr_leaves_check.cairo")
 
 class CairoHelper(CairoTestHelper[HexStr]):
     SEPARATOR = 2128685017815709937522 # cairo representation of 'separator' string
@@ -77,7 +71,7 @@ def main():
     parser = get_arg_parser()
     args = parser.parse_args()
     cairo_helper = CairoHelper(
-        args.bin_dir, args.node_rpc_url, PROGRAM_PATH, cairo_path=config.PROJECT_ROOT
+        args.bin_dir, args.node_rpc_url, config.CairoApps.IntegrationTests.MERKLE_TREE_LEAVES
     )
     runner = ExampleRunner(cairo_helper, args.store_input_copy)
 

@@ -172,7 +172,6 @@ def main():
     cairo_interface = CairoInterface(
         args.bin_dir, args.node_rpc_url, config.CairoApps.TLV_PROVER,
         serializer=lambda payload: payload.to_cairo(),
-        cairo_path=config.PROJECT_ROOT
     )
 
     LOGGER.info("Running the program")

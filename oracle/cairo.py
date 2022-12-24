@@ -25,7 +25,7 @@ class CairoInterface(Generic[T]):
         self._serializer = serializer
         self._client = init_client(bin_dir=bin_dir, node_rpc_url=node_rpc_url)
         self._program = None
-        self._cairo_path = cairo_path if cairo_path else config.PROJECT_ROOT
+        self._cairo_path = cairo_path if cairo_path else config.CAIRO_CODE_LOCATION
         self._program_path = program_path
 
     @property

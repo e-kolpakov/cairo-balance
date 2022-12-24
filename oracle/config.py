@@ -5,6 +5,8 @@ import json
 PROJECT_ROOT = os.path.dirname(__file__)
 
 CONFIG_LOCATION = os.path.join(PROJECT_ROOT, 'config.json')
+CAIRO_CODE_LOCATION = os.path.join(PROJECT_ROOT, 'cairo')
+INTEGRATION_TESTS = os.path.join(PROJECT_ROOT, 'integration_test')
 
 with open(CONFIG_LOCATION) as json_file:
     raw_config = json.load(json_file)
@@ -64,5 +66,11 @@ USE_CACHE = True
 DEBUG = False
 
 class CairoApps:
-    MERKLE_TREE = 'merkle_tree.cairo'
-    TLV_PROVER = 'tlv_prover.cairo'
+    MERKLE_TREE = os.path.join(CAIRO_CODE_LOCATION, 'merkle_tree.cairo')
+    TLV_PROVER = os.path.join(CAIRO_CODE_LOCATION, 'tlv_prover.cairo')
+
+    class IntegrationTests:
+        ZEROHASHES = os.path.join(INTEGRATION_TESTS, 'zerohashes_check.cairo')
+        MERKLE_TREE = os.path.join(INTEGRATION_TESTS, 'merkle_tree_check.cairo')
+        MERKLE_TREE_LEAVES = os.path.join(INTEGRATION_TESTS, 'mtr_leaves_check.cairo')
+        BEACON_STATE = os.path.join(INTEGRATION_TESTS, 'beacon_state_check.cairo')

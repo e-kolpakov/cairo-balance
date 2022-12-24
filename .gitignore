@@ -1,5 +1,11 @@
 *.json
 *.pb.gz
 /.idea/
-/tests/.hypothesis/
-/tests/.pytest_cache/
+**/.hypothesis/
+**/.pytest_cache/
+
+__pycache__
+.env
+.history
+contracts/build/
+contracts/reports/

@@ -1,20 +1,14 @@
-from decimal import Decimal
-
-import logging
+import os, sys
 from eth_typing import HexStr
 from typing import List, Dict, Any
+from decimal import Decimal
 
-import os, sys
+sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
+
 import config
 from api.eth_api import BeaconState, Validator
 from integration_test.testutils import CairoTestHelper, ExampleRunnerHelper, get_arg_parser
-
-sys.path.insert(0, os.getcwd())
-
-from merkle.merkle_tree import ProgressiveMerkleTreeBuilder
 from utils import IntUtils
-
-PROGRAM_PATH = os.path.join(os.path.dirname(__file__), "beacon_state_check.cairo")
 
 class CairoHelper(CairoTestHelper[HexStr]):
     def _parse_output(self, output: List[int]) -> HexStr:
@@ -69,9 +63,7 @@ class ExampleRunner(ExampleRunnerHelper[BeaconState, HexStr]):
 def main():
     parser = get_arg_parser()
     args = parser.parse_args()
-    cairo_helper = CairoHelper(
-        args.bin_dir, args.node_rpc_url, PROGRAM_PATH, cairo_path=config.PROJECT_ROOT
-    )
+    cairo_helper = CairoHelper(args.bin_dir, args.node_rpc_url, config.CairoApps.IntegrationTests.BEACON_STATE)
     runner = ExampleRunner(cairo_helper, args.store_input_copy)
 
     runner.run()

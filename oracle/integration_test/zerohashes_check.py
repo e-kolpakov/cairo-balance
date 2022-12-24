@@ -1,25 +1,15 @@
 import os, sys
-from eth_typing import HexStr
-
-from integration_test.testutils import CairoTestHelper, ExampleRunnerHelper, get_arg_parser
-
-sys.path.insert(0, os.getcwd())
-
-from starkware.cairo.sharp.sharp_client import init_client
-from starkware.cairo.bootloaders.generate_fact import get_program_output
-
-import json
-import tempfile
-import argparse
 from typing import List, Dict, Any
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
+from eth_typing import HexStr
 
 import config
 from utils import IntUtils
 from keccak_utils import KeccakHash
 from merkle.merkle_tree import ProgressiveMerkleTreeBuilder
 
-
-TREE_CHECK_CAIRO_SOURCE_PATH = os.path.join(os.path.dirname(__file__), "zerohashes_check.cairo")
+from integration_test.testutils import CairoTestHelper, ExampleRunnerHelper, get_arg_parser
 
 class CairoHelper(CairoTestHelper[List[HexStr]]):
     def _parse_output(self, output: List[int]) -> List[HexStr]:
@@ -76,7 +66,7 @@ def main():
     parser = get_arg_parser()
     args = parser.parse_args()
     cairo_helper = CairoHelper(
-        args.bin_dir, args.node_rpc_url, TREE_CHECK_CAIRO_SOURCE_PATH, cairo_path=config.PROJECT_ROOT
+        args.bin_dir, args.node_rpc_url, config.CairoApps.IntegrationTests.ZEROHASHES
     )
     runner = ExampleRunner(cairo_helper, args.store_input_copy)
 
