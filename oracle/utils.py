@@ -4,8 +4,7 @@ from dataclasses import asdict
 
 from datetime import date, datetime
 from eth_typing import HexStr
-from typing import Union, List
-from backports import Literal
+from typing import Union, List, Literal
 from keccak_utils import KeccakInput
 
 ByteEndianness = Literal['little', 'big']

@@ -4,7 +4,7 @@ import unittest
 
 import ddt
 
-from merkle.eth_progressive_merkle_tree_reference_impl import testdata, branch_by_branch
+from merkle.eth_merkle_tree_reference_impl import testdata, branch_by_branch
 from merkle import merkle_tree
 
 from hypothesis import strategies as st, given, note, settings, example
@@ -12,6 +12,7 @@ from hypothesis import strategies as st, given, note, settings, example
 from utils import IntUtils
 
 keccak_hash = st.binary(min_size=32, max_size=32)
+
 
 common_test_cases = [
     [],
@@ -23,7 +24,7 @@ common_test_cases = [
     testdata[:5049]
 ]
 
-def get_merkle_tree_from_eth_builder(input_data):
+def get_merkle_tree_from_progressive_builder(input_data):
     tree = merkle_tree.ProgressiveMerkleTreeBuilder()
     tree.add_values(input_data)
     return tree.build().hash()
@@ -33,7 +34,7 @@ def get_merkle_tree_from_eth_builder(input_data):
 class TestEthereumBuilder(unittest.TestCase):
     @ddt.data(*common_test_cases)
     def test_trees_match(self, test_data):
-        actual = get_merkle_tree_from_eth_builder(test_data)
+        actual = get_merkle_tree_from_progressive_builder(test_data)
         reference_impl_result = branch_by_branch(test_data)
         self.assertEqual(actual, reference_impl_result)
 
@@ -47,7 +48,7 @@ class TestHypothesisEthereumBuilder(unittest.TestCase):
 
     @given(st.lists(keccak_hash, max_size=2*16))
     def test_merkle_tree_root_matches(self, test_data):
-        actual = get_merkle_tree_from_eth_builder(test_data)
+        actual = get_merkle_tree_from_progressive_builder(test_data)
         reference_impl_result = branch_by_branch(test_data)
         note(f"Input is {self._pretty_print_input(test_data)}")
         assert actual == reference_impl_result

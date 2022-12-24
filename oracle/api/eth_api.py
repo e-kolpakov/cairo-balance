@@ -1,13 +1,10 @@
-import functools
-
 from eth_typing import HexStr
 
 import config
 import logging
 
 from dataclasses_json import DataClassJsonMixin
-from typing import List, Dict, Optional, Generator, Iterator
-from backports import TypedDict
+from typing import List, Dict, Optional, Generator, Iterator, TypedDict
 
 from dataclasses import dataclass
 from decimal import Decimal
@@ -42,7 +39,7 @@ class Validator(DataClassJsonMixin, AsDict):
         )
 
     def to_cairo(self) -> ValidatorCairoSerialized:
-        return {"pubkey": self.pubkey, "balance": self.balance}
+        return ValidatorCairoSerialized(pubkey=self.pubkey, balance=self.balance)
 
     @property
     def pubkey_int(self) -> int:
@@ -82,7 +79,6 @@ class BeaconState:
         tree_builder.add_values(self._flatten())
         return tree_builder
 
-    # @functools.cached_property - TODO: this is not available in python 3.7
     def merkle_tree_root(self) -> MerkleTreeNode:
         return self.merkle_tree_builder().build()
 

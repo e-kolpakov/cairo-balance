@@ -1,0 +1,15 @@
+project_structure:
+    build: ethereum/build
+    contracts: ethereum/contracts
+    interfaces: ethereum/interfaces
+    reports: ethereum/reports
+    scripts: ethereum/scripts
+    tests: ethereum/tests
+compiler:
+    solc:
+        remappings:
+            - "@ganache/console.log=./node_modules/@ganache/console.log"
+dependencies:
+    # - GNSPS/solidity-bytes-utils@0.8.0
+    - OpenZeppelin/openzeppelin-contracts@4.3.2
+    # - ganache/console.log@0.3.0

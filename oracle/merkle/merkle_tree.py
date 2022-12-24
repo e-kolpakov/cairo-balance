@@ -163,6 +163,7 @@ class ProgressiveMerkleTreeBuilder:
     def add_values(self, values: Iterable[KeccakInput]):
         for value in values:
             self.add_value(value)
+        return self
 
     # Add a value to a Merkle tree by using the algo
     # that stores a branch of sub-roots

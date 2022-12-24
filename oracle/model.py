@@ -1,10 +1,9 @@
 from dataclasses import dataclass
 
-from typing import List
+from typing import List, TypedDict
 import logging
 from eth_typing import HexStr
 
-from backports import TypedDict
 from api.eth_api import BeaconState, BeaconStateCairoSerialized
 from api.lido_api import LidoOperatorList, OperatorKeysCairoSerialized
 from utils import IntUtils
@@ -41,10 +40,10 @@ class ProverPayload:
         return sum(validator.balance for validator in self.lido_operators_in_eth)
 
     def to_cairo(self) -> ProverPayloadSerialized:
-        return {
-            "beacon_state": self.beacon_state.to_cairo(),
-            "validator_keys": self.lido_operators.to_cairo(),
-        }
+        return ProverPayloadSerialized(
+            beacon_state=self.beacon_state.to_cairo(),
+            validator_keys=self.lido_operators.to_cairo(),
+        )
 
     def __repr__(self):
         return self.__str__()

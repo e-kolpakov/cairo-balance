@@ -62,9 +62,6 @@ class ExampleRunner(ExampleRunnerHelper[int, ExampleType]):
 def main():
     parser = get_arg_parser()
     args = parser.parse_args()
-
-    parser = get_arg_parser()
-    args = parser.parse_args()
     cairo_helper = CairoHelper(
         args.bin_dir, args.node_rpc_url, config.CairoApps.IntegrationTests.ZEROHASHES
     )

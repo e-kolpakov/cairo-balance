@@ -7,7 +7,8 @@
 # https://github.com/ethereum/research/blob/master/beacon_chain_impl/progressive_merkle_tree.py
 from eth_hash.auto import keccak
 
-def hash(x): return keccak(x)
+def hash(x):
+    return keccak(x)
 
 zerohashes = [b'\x00' * 32]
 for i in range(1, 32):

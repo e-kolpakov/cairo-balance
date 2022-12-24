@@ -1,8 +1,7 @@
 from dataclasses import dataclass
 
 from eth_typing import HexStr
-from typing import List, Any, Dict, Generator, Iterator
-from backports import Literal
+from typing import List, Any, Dict, Generator, Iterator, Literal
 
 from lido_sdk.methods.typing import OperatorKey
 
@@ -69,7 +68,6 @@ class LidoOperatorList:
         for operator in self.operators:
             yield from IntUtils.pubkey_to_keccak_input(operator.key_int())
 
-    # @functools.cached_property - TODO: this is not avaialble in python 3.7
     def merkle_tree_root(self) -> MerkleTreeNode:
         tree_builder = ProgressiveMerkleTreeBuilder()
         tree_builder.add_values(self._flatten())
