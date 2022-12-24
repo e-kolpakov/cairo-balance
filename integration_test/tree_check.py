@@ -23,7 +23,7 @@ class CairoHelper(CairoTestHelper[int]):
 
 class ExampleRunner(ExampleRunnerHelper[List[bytes], int]):
     def examples(self):
-        from merkle.eth_progressive_merkle_tree_reference_impl import testdata
+        from merkle.eth_merkle_tree_reference_impl import testdata
         return [
             (f"count_0", []),
             (f"count_1", testdata[:1]),

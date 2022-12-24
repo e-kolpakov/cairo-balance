@@ -14,7 +14,7 @@ T = TypeVar('T')
 
 
 class CairoInterface(Generic[T]):
-    LOGGER = logging.getLogger(__name__ + ".JsonDiskCache")
+    LOGGER = logging.getLogger(__name__ + ".CairoInterface")
 
     def __init__(
             self,

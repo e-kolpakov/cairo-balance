@@ -8,16 +8,16 @@ from starkware.cairo.common.alloc import alloc
 from model import BeaconState, Validator, Eth2ValidatorKey, read_beacon_state, serialize_validator_key, serialize_uint256, flatten_beacon_state, flatten_validator_keys
 from merkle_tree import branch_by_branch_with_start_and_end
 
-func serialize_array{output_ptr : felt*}(first: Uint256*, last: Uint256*):
-    if first == last:
-        return() 
-    end
-    serialize_uint256([first])
-    return serialize_array(first + Uint256.SIZE, last)
-end
+func serialize_array{output_ptr : felt*}(first: Uint256*, last: Uint256*) {
+    if (first == last) {
+        return() ;
+    }
+    serialize_uint256([first]);
+    return serialize_array(first + Uint256.SIZE, last);
+}
 
-func main{output_ptr : felt*, range_check_ptr, bitwise_ptr: BitwiseBuiltin*}():
-    alloc_locals
+func main{output_ptr : felt*, range_check_ptr, bitwise_ptr: BitwiseBuiltin*}() {
+    alloc_locals;
 
     %{
         def split_uint256(value):
@@ -56,14 +56,14 @@ func main{output_ptr : felt*, range_check_ptr, bitwise_ptr: BitwiseBuiltin*}():
         beacon_state_input = program_input['beacon_state']
     %}
 
-    let (beacon_state: BeaconState) = read_beacon_state()
+    let (beacon_state: BeaconState*) = read_beacon_state();
 
 
-    let (local beacon_state_mtr_input_start: Uint256*) = alloc()
-    let (beacon_state_mtr_input_end: Uint256*) = flatten_beacon_state(beacon_state, beacon_state_mtr_input_start)
-    # serialize_array(beacon_state_mtr_input_start, beacon_state_mtr_input_end)
-    let (local beacon_state_mtr: Uint256) = branch_by_branch_with_start_and_end(beacon_state_mtr_input_start, beacon_state_mtr_input_end)
-    serialize_uint256(beacon_state_mtr)
+    let (local beacon_state_mtr_input_start: Uint256*) = alloc();
+    let (beacon_state_mtr_input_end: Uint256*) = flatten_beacon_state([beacon_state], beacon_state_mtr_input_start);
+    //  serialize_array(beacon_state_mtr_input_start, beacon_state_mtr_input_end)
+    let (local beacon_state_mtr: Uint256) = branch_by_branch_with_start_and_end(beacon_state_mtr_input_start, beacon_state_mtr_input_end);
+    serialize_uint256(beacon_state_mtr);
     
-    return ()
-end
+    return ();
+}
