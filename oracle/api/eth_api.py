@@ -97,7 +97,6 @@ class BeaconState:
         return self.__str__()
 
     def __str__(self):
-        self.LOGGER.debug("Calling __str__")
         return f"BeaconState(total_validators={self.total_validators}, first_10_validators={self.validators[:10]}"
 
 

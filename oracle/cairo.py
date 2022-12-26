@@ -6,12 +6,16 @@ import tempfile
 
 import logging
 import json
+import time
 from starkware.cairo.sharp.sharp_client import init_client
 
 import config
 from json_protocol import CustomJsonEncoder
 
 T = TypeVar('T')
+
+JobId = str
+FactId = str
 
 
 class CairoInterface(Generic[T]):
@@ -59,12 +63,29 @@ class CairoInterface(Generic[T]):
             self.LOGGER.debug(f"Cairo program run successfully - reading output")
             return get_program_output(self._cairo_pie)
 
-    def submit(self) -> str:
+    def submit(self) -> JobId:
         assert self._cairo_pie is not None, "Program should be run before get_fact can be called"
         job_id = self._client.submit_cairo_pie(self._cairo_pie)
         self.LOGGER.info("Submitted job id: %s", job_id)
         return job_id
 
-    def get_fact(self) -> str:
+    def get_fact(self) -> FactId:
         assert self._cairo_pie is not None, "Program should be run before get_fact can be called"
         return self._client.get_fact(self._cairo_pie)
+
+    def wait_until_fact_registered_and_valid(self, job_id: JobId, fact_id: FactId, timeout: int = 300):
+        self.LOGGER.info(f"Waiting for the fact {fact_id} to be registered on-chain...")
+        seconds = 0.0
+        # fact_registered actually checks if the fact is valid
+        while not self._client.fact_registered(fact_id):
+            status = self._client.get_job_status(job_id)
+            self.LOGGER.debug(
+                f"Elapsed: {seconds / 60} minutes. Status of job id '{job_id}' "
+                f"and fact '{fact_id}' is '{status}'."
+            )
+            if seconds > timeout:
+                message = f"Fact {fact_id} was not registered in {seconds} seconds. Status of job id '{job_id}' "
+                f"and fact '{fact_id}' is '{status}'."
+                raise TimeoutError(message)
+            time.sleep(15)
+            seconds += 15

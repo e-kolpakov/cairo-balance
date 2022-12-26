@@ -84,7 +84,6 @@ class LidoOperatorList:
         return self.__str__()
 
     def __str__(self):
-        self.LOGGER.debug("Calling __str__")
         return f"LidoOperatorList(total_operators={self.total_operators}, first_10_operators={self.operators[:10]}"
 
 

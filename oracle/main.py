@@ -1,7 +1,7 @@
 import enum
 import argparse
 import logging
-from typing import List
+from typing import List, Callable, Tuple
 
 from eth_typing import HexStr
 from tap import Tap
@@ -15,7 +15,8 @@ from web3.beacon import Beacon
 
 from cairo import CairoInterface
 from generate_input import RangeMode
-from model import ProverPayload, ProverOutput
+from model import ProverPayload
+from oracle import Oracle, StubTLVContract, ProverPayloadSource
 
 DESTINATION_FOLDER = "."
 
@@ -127,89 +128,107 @@ class ArgumentParser(Tap):
         )
 
 
-def get_beacon_state() -> BeaconState:
-    LOGGER.info("Fetching beacon state")
-    beacon = Beacon(config.ETH2_API)
-    if config.USE_CACHE:
-        LOGGER.debug("Using read-through cache for beacon state")
-        beacon_api = CachedBeaconAPIWrapper(beacon, config.ETH2_CACHE_LOCATION)
-    else:
-        beacon_api = BeaconAPIWrapper(beacon)
-    all_eth_validators = beacon_api.validators()
-    return BeaconState(all_eth_validators)
-
-
-def get_lido_operator_list() -> LidoOperatorList:
-    LOGGER.info("Fetching Lido validators")
-    w3 = get_web3_connection(config.WEB3_API)
-    if config.USE_CACHE:
-        LOGGER.debug("Using read-through cache for Lido validators")
-        lido_api = CachedLidoWrapper(w3)
-    else:
-        lido_api = LidoWrapper(w3)
-    operator_keys = lido_api.get_operator_keys()
-    return LidoOperatorList(operator_keys)
-
-
-def get_live_prover_payload() -> (BeaconState, LidoOperatorList):
-    beacon_state = get_beacon_state()
-    lido_operators = get_lido_operator_list()
-    return (beacon_state, lido_operators)
-
-
 def assert_equal(label, python_mtr: str, cairo_mtr: str):
     if python_mtr != cairo_mtr:
         message = f"[Mismatch] [{label}]\nCairo :{cairo_mtr}\nPython:{python_mtr}"
         LOGGER.error(message)
         raise AssertionError(message)
 
+class StaticProverPayloadSource(ProverPayloadSource):
+    def __init__(self, input_source: Callable[[], Tuple[BeaconState, LidoOperatorList]]):
+        beacon_state, lido_operator_list = input_source()
+        self.beacon_state = beacon_state
+        self.lido_operator_list = lido_operator_list
+
+    def get_prover_payload(self):
+        return ProverPayload(
+            beacon_state=self.beacon_state,
+            lido_operator_keys=[operator.key for operator in self.lido_operator_list.operators]
+        )
+
+class BlockchainProverPayloadSource:
+    LOGGER = logging.getLogger(__name__ + ".BlockchainProverPayloadSource")
+    def __init__(self, web3_enpoint, eth2_endpoint, use_cache=True):
+        web3 = get_web3_connection(web3_enpoint)
+        beacon = Beacon(eth2_endpoint)
+
+        if use_cache:
+            self.LOGGER.debug("Using read-through cache for Lido validators")
+            lido_api = CachedLidoWrapper(web3)
+
+            self.LOGGER.debug("Using read-through cache for beacon state")
+            beacon_api = CachedBeaconAPIWrapper(beacon, config.ETH2_CACHE_LOCATION)
+        else:
+            lido_api = LidoWrapper(web3)
+            beacon_api = BeaconAPIWrapper(beacon)
+
+        self._lido_api = lido_api
+        self._beacon_api = beacon_api
+
+        self._beacon_state = None
+        self._lido_operators_list = None
+    @property
+    def lido_operator_list(self) -> LidoOperatorList:
+        if self._lido_operators_list is None:
+            self.LOGGER.info("Fetching Lido validators")
+            operator_keys = self._lido_api.get_operator_keys()
+            self._lido_operators_list = LidoOperatorList(operator_keys)
+
+        return self._lido_operators_list
+
+    @property
+    def beacon_state(self) -> BeaconState:
+        if self._beacon_state is None:
+            self.LOGGER.info("Fetching beacon state")
+            all_eth_validators = self._beacon_api.validators()
+            self._beacon_state = BeaconState(all_eth_validators)
+        return self._beacon_state
+
+    def get_prover_payload(self) -> (BeaconState, LidoOperatorList):
+        beacon_state = self.beacon_state
+        lido_operators = self.lido_operator_list
+        return ProverPayload(
+            beacon_state=beacon_state,
+            lido_operator_keys=[operator.key for operator in lido_operators.operators]
+        )
+
 
 def main():
     args = ArgumentParser().parse_args()
 
     if args.source == DataSource.STUB:
-        (beacon_state, lido_operator_list) = generate_input.stub()
+        input_source = lambda: generate_input.stub()
+        prover_payload_source = StaticProverPayloadSource(input_source)
     elif args.source == DataSource.GEN:
-        (beacon_state, lido_operator_list) = generate_input.generate(args.address_range, args.value_range, args.count_eth, args.count_lido)
+        input_source = lambda: generate_input.generate(args.address_range, args.value_range, args.count_eth, args.count_lido)
+        prover_payload_source = StaticProverPayloadSource(input_source)
     elif args.source == DataSource.LIVE:
-        (beacon_state, lido_operator_list) = get_live_prover_payload()
+        prover_payload_source = BlockchainProverPayloadSource(config.WEB3_GOERLI_API, config.ETH2_API)
     else:
         raise ValueError(f"Unsupported generation mode {args.source}")
 
-    prover_payload = ProverPayload(
-        beacon_state=beacon_state,
-        lido_operator_keys=[operator.key for operator in lido_operator_list.operators]
-    )
-
-    LOGGER.info("Generated prover payload %s", prover_payload)
-
-    LOGGER.info("Creating Cairo interface")
+    LOGGER.debug("Creating Cairo interface")
     cairo_interface = CairoInterface(
         args.bin_dir, args.node_rpc_url, config.CairoApps.TLV_PROVER,
         serializer=lambda payload: payload.to_cairo(),
     )
 
-    LOGGER.info("Running the program")
-    cairo_output = cairo_interface.run(prover_payload, args.store_input_copy)
-    LOGGER.debug(f"Raw cairo output {cairo_output}")
+    prover_payload = prover_payload_source.get_prover_payload()
+    LOGGER.info("Prover payload %s", prover_payload)
 
-    LOGGER.info("Parsing cairo output")
-    try:
-        parsed_output = ProverOutput.read_from_prover_output(cairo_output)
-    except AssertionError as e:
-        LOGGER.exception("Couldn't parse cairo output:\n%s", cairo_output)
-        raise
-    LOGGER.debug("Cairo output %s", parsed_output)
+    LOGGER.debug("Creating oracle instance")
+    oracle = Oracle(prover_payload_source, cairo_interface, StubTLVContract(), dry_run=not args.submit)
+    (parsed_output, _job_id, _fact_id) = oracle.run_oracle()
 
     LOGGER.info("Checking merkle tree roots and total value locked match")
     assert_equal(
         "BeaconState Merkle Tree Roots",
-        beacon_state.merkle_tree_root().hash_hex(),
+        prover_payload_source.beacon_state.merkle_tree_root().hash_hex(),
         parsed_output.beacon_state_mtr
     )
     assert_equal(
         "Validator Keys Merkle Tree Roots",
-        lido_operator_list.merkle_tree_root().hash_hex(),
+        prover_payload_source.lido_operator_list.merkle_tree_root().hash_hex(),
         parsed_output.validator_keys_mtr
     )
     assert_equal(
@@ -217,12 +236,7 @@ def main():
         str(prover_payload.lido_tlv),
         str(parsed_output.total_value_locked)
     )
-
     print("MTRs and TLV matched - success")
-
-    if args.submit:
-        job_id = cairo_interface.submit()
-        print(job_id)
 
 
 if __name__ == "__main__":

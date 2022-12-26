@@ -13,6 +13,13 @@ with open(CONFIG_LOCATION) as json_file:
 
 LOG_LEVEL = 'DEBUG'
 
+NOISY_LOGGERS = {
+    'disk_cache.JsonDiskCache': 'INFO',
+    'integration_test.testutils.CairoTestHelper': 'INFO',
+    'urllib3': 'INFO',
+    'web3': 'INFO'
+}
+
 LOGGER_CONFIG = {
     'version': 1,
     'formatters': {
@@ -35,14 +42,10 @@ LOGGER_CONFIG = {
         # }
     },
     'loggers': {
-        'cairo.JsonDiskCache': {
-            'level': 'INFO',
+        logger: {
+            'level': level,
             'handlers': ['console']
-        },
-        'integration_test.testutils.CairoTestHelper': {
-            'level': 'INFO',
-            'handlers': ['console']
-        }
+        } for logger, level in NOISY_LOGGERS.items()
     },
     'root': {
         'level': LOG_LEVEL,
@@ -56,6 +59,7 @@ config.dictConfig(LOGGER_CONFIG)
 
 WEB3_API =  raw_config["web3_api"]
 WEB3_GOERLI_API =  raw_config["web3_goerli_api"]
+WEB3_LOCAL_API = "127.0.0.1:8545"
 ETH2_API =  raw_config["eth2_api"]
 ETH2_PRATER_API =  raw_config["eth2_prater_api"]
 WEB3_CACHE_LOCATION = "./cache/web3"
