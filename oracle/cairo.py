@@ -1,4 +1,5 @@
 from starkware.cairo.bootloaders.generate_fact import get_program_output
+from starkware.cairo.common.hash_chain import compute_hash_chain
 from typing import List, TypeVar, Generic, Callable, Dict, Any
 
 import tempfile
@@ -27,6 +28,7 @@ class CairoInterface(Generic[T]):
         self._program = None
         self._cairo_path = cairo_path if cairo_path else config.CAIRO_CODE_LOCATION
         self._program_path = program_path
+        self._cairo_pie = None
 
     @property
     def program(self):
@@ -35,6 +37,10 @@ class CairoInterface(Generic[T]):
             self.LOGGER.info(f"Compiling Cairo program: {self._program_path}")
             self._program = self._client.compile_cairo(source_code_path=self._program_path, flags=compile_flags)
         return self._program
+
+    @property
+    def program_hash(self):
+        return compute_hash_chain(self.program)
 
     def run(self, payload: T, store_input: str = None) -> List[int]:
         self.LOGGER.info("Serializing payload to json")
@@ -49,6 +55,16 @@ class CairoInterface(Generic[T]):
         with tempfile.NamedTemporaryFile(mode="w") as program_input_file:
             program_input_file.write(program_input_serialized)
             program_input_file.flush()
-            cairo_pie = self._client.run_program(self.program, program_input_file.name)
+            self._cairo_pie = self._client.run_program(self.program, program_input_file.name)
             self.LOGGER.debug(f"Cairo program run successfully - reading output")
-            return get_program_output(cairo_pie)
+            return get_program_output(self._cairo_pie)
+
+    def submit(self) -> str:
+        assert self._cairo_pie is not None, "Program should be run before get_fact can be called"
+        job_id = self._client.submit_cairo_pie(self._cairo_pie)
+        self.LOGGER.info("Submitted job id: %s", job_id)
+        return job_id
+
+    def get_fact(self) -> str:
+        assert self._cairo_pie is not None, "Program should be run before get_fact can be called"
+        return self._client.get_fact(self._cairo_pie)

@@ -1,7 +1,9 @@
 import enum
 import argparse
 import logging
+from typing import List
 
+from eth_typing import HexStr
 from tap import Tap
 
 import config
@@ -66,6 +68,7 @@ class ArgumentParser(Tap):
     value_range: RangeMode
 
     store_input_copy: str
+    submit: bool
 
     def configure(self):
         self.add_argument(
@@ -108,6 +111,13 @@ class ArgumentParser(Tap):
             default=RangeMode.SMALL
         )
 
+        self.add_argument(
+            "--submit",
+            action='store_true',
+            default=False,
+            help="Submit program to SHARP"
+        )
+
         # debug arguments
         self.add_argument(
             "--store_input_copy",
@@ -129,7 +139,7 @@ def get_beacon_state() -> BeaconState:
     return BeaconState(all_eth_validators)
 
 
-def get_lido_operator_keys() -> LidoOperatorList:
+def get_lido_operator_list() -> LidoOperatorList:
     LOGGER.info("Fetching Lido validators")
     w3 = get_web3_connection(config.WEB3_API)
     if config.USE_CACHE:
@@ -141,10 +151,10 @@ def get_lido_operator_keys() -> LidoOperatorList:
     return LidoOperatorList(operator_keys)
 
 
-def get_live_prover_payload() -> ProverPayload:
+def get_live_prover_payload() -> (BeaconState, LidoOperatorList):
     beacon_state = get_beacon_state()
-    lido_operator_keys = get_lido_operator_keys()
-    return ProverPayload(beacon_state, lido_operator_keys)
+    lido_operators = get_lido_operator_list()
+    return (beacon_state, lido_operators)
 
 
 def assert_equal(label, python_mtr: str, cairo_mtr: str):
@@ -158,13 +168,18 @@ def main():
     args = ArgumentParser().parse_args()
 
     if args.source == DataSource.STUB:
-        prover_payload = generate_input.stub()
+        (beacon_state, lido_operator_list) = generate_input.stub()
     elif args.source == DataSource.GEN:
-        prover_payload = generate_input.generate(args.address_range, args.value_range, args.count_eth, args.count_lido)
+        (beacon_state, lido_operator_list) = generate_input.generate(args.address_range, args.value_range, args.count_eth, args.count_lido)
     elif args.source == DataSource.LIVE:
-        prover_payload = get_live_prover_payload()
+        (beacon_state, lido_operator_list) = get_live_prover_payload()
     else:
         raise ValueError(f"Unsupported generation mode {args.source}")
+
+    prover_payload = ProverPayload(
+        beacon_state=beacon_state,
+        lido_operator_keys=[operator.key for operator in lido_operator_list.operators]
+    )
 
     LOGGER.info("Generated prover payload %s", prover_payload)
 
@@ -189,12 +204,12 @@ def main():
     LOGGER.info("Checking merkle tree roots and total value locked match")
     assert_equal(
         "BeaconState Merkle Tree Roots",
-        prover_payload.beacon_state.merkle_tree_root().hash_hex(),
+        beacon_state.merkle_tree_root().hash_hex(),
         parsed_output.beacon_state_mtr
     )
     assert_equal(
         "Validator Keys Merkle Tree Roots",
-        prover_payload.lido_operators.merkle_tree_root().hash_hex(),
+        lido_operator_list.merkle_tree_root().hash_hex(),
         parsed_output.validator_keys_mtr
     )
     assert_equal(
@@ -204,6 +219,10 @@ def main():
     )
 
     print("MTRs and TLV matched - success")
+
+    if args.submit:
+        job_id = cairo_interface.submit()
+        print(job_id)
 
 
 if __name__ == "__main__":

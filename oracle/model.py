@@ -21,15 +21,15 @@ class ProverPayloadSerialized(TypedDict):
 
 class ProverPayload:
     LOGGER = logging.getLogger(__name__ + ".ProverPayload")
-    def __init__(self, beacon_state: BeaconState, lido_operators: LidoOperatorList):
+    def __init__(self, beacon_state: BeaconState, lido_operator_keys: List[HexStr]):
         self.beacon_state = beacon_state
-        self.lido_operators = lido_operators
+        self.lido_operator_keys = lido_operator_keys
 
     @property
     def lido_operators_in_eth(self):
         validators = [
-            self.beacon_state.find_validator(operator.key)
-            for operator in self.lido_operators.operators
+            self.beacon_state.find_validator(key)
+            for key in self.lido_operator_keys
         ]
         return [
             validator for validator in validators if validator is not None
@@ -42,7 +42,7 @@ class ProverPayload:
     def to_cairo(self) -> ProverPayloadSerialized:
         return ProverPayloadSerialized(
             beacon_state=self.beacon_state.to_cairo(),
-            validator_keys=self.lido_operators.to_cairo(),
+            validator_keys=self.lido_operator_keys,
         )
 
     def __repr__(self):
@@ -50,7 +50,7 @@ class ProverPayload:
 
     def __str__(self):
         self.LOGGER.debug("Calling __str__")
-        return f"ProverPayload(beacon_state={self.beacon_state}, lido_operators={self.lido_operators}, lido_tlv={self.lido_tlv}"
+        return f"ProverPayload(beacon_state={self.beacon_state}, lido_operator_keys={self.lido_operator_keys}, lido_tlv={self.lido_tlv}"
 
 @dataclass
 class ProverOutput:

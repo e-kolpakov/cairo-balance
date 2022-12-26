@@ -111,73 +111,40 @@ class AddressRange(Range):
             return cls(0, sys.maxsize)
 
 
-def generate_many(arguments):
-    pass
-    # count = arguments.count
-    # address_range = AddressRange.get_range(arguments.address_range)
-    # value_range = ValueRange.get_range(arguments.value_range)
-    #
-    # accounts = []
-    # existing_addresses = set()
-    # for i in range(count):
-    #     account = generate_account(address_range, value_range, existing_addresses)
-    #     accounts.append(account)
-    #     existing_addresses.add(account.address)
-    #
-    # tree_builder = TopDownBuilder(accounts)
-    # tree_root = tree_builder.build()
-    # # print(tree_root.print(0))
-    # print(f"Total value {sum([account.balance for account in accounts])} wei" )
-    # print("Merkle tree root", tree_root.print_hash(tree_root.hash()))
-    #
-    # return {
-    #     'accounts': [
-    #         { "address": f"0x{account.address:020x}", "balance": account.balance}
-    #         for account in accounts
-    #     ],
-    #     "merkle_tree_root": {
-    #         "high": int.from_bytes(tree_root.hash()[:16], 'big', signed=False),
-    #         "low": int.from_bytes(tree_root.hash()[16:32], 'big', signed=False)
-    #     }
-    # }
-
-
-def stub():
+def stub() -> (BeaconState, LidoOperatorList):
     key1 = 0x1
     key2 = 0x968ff4505567afa998c734bc85b73e7fd8f1003650af5f47371367cf83cb534dca970234bc96696a91b232e90e173350
 
     key3 = 0x3
-    prover_payload = ProverPayload(
-        beacon_state=BeaconState(
-            [
-                Validator(HexStr(f"{key1:#096x}"), Decimal(1000)),
-                Validator(HexStr(f"{key2:#096x}"), Decimal(2000)),
-                Validator(HexStr(f"{key3:#096x}"), Decimal(4000)),
-            ]
-        ),
-        lido_operators=LidoOperatorList(
-            [
-                OperatorKeyAdapter(
-                    operator_key=OperatorKey(
-                        index=0, operator_index=0, key=key1.to_bytes(48, 'big', signed=False),
-                        depositSignature=b'asdfgh', used=True
-                    )
-                ),
-                OperatorKeyAdapter(
-                    operator_key=OperatorKey(
-                        index=1, operator_index=0, key=key2.to_bytes(48, 'big', signed=False),
-                        depositSignature=b'qweasd', used=True
-                    )
-                )
-            ]
-        )
+    beacon_state=BeaconState(
+        [
+            Validator(HexStr(f"{key1:#096x}"), Decimal(1000)),
+            Validator(HexStr(f"{key2:#096x}"), Decimal(2000)),
+            Validator(HexStr(f"{key3:#096x}"), Decimal(4000)),
+        ]
     )
-    return prover_payload
+    lido_operators=LidoOperatorList(
+        [
+            OperatorKeyAdapter(
+                operator_key=OperatorKey(
+                    index=0, operator_index=0, key=key1.to_bytes(48, 'big', signed=False),
+                    depositSignature=b'asdfgh', used=True
+                )
+            ),
+            OperatorKeyAdapter(
+                operator_key=OperatorKey(
+                    index=1, operator_index=0, key=key2.to_bytes(48, 'big', signed=False),
+                    depositSignature=b'qweasd', used=True
+                )
+            )
+        ]
+    )
+    return (beacon_state, lido_operators)
 
 
 def generate(
         address_range_mode: RangeMode, value_range_mode: RangeMode, count_eth: int, count_lido: int
-) -> ProverPayload:
+) -> (BeaconState, LidoOperatorList):
     assert count_eth >= count_lido, "Eth count must be greater or equal than lido_count"
     address_range = AddressRange.get_range(address_range_mode)
     value_range = AddressRange.get_range(value_range_mode)
@@ -200,4 +167,4 @@ def generate(
         )
         operators.append(OperatorKeyAdapter(operator_key))
     lido_operators = LidoOperatorList(operators)
-    return ProverPayload(beacon_state=beacon_state, lido_operators=lido_operators)
+    return (beacon_state, lido_operators)
