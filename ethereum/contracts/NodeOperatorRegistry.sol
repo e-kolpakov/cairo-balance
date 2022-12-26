@@ -1,12 +1,15 @@
-pragma solidity ^0.8.6;
+// SPDX-License-Identifier: MIT
+
+pragma solidity ^0.8.16;
 
 // import "GNSPS/solidity-bytes-utils@0.8.0/contracts/BytesLib.sol";
 import "OpenZeppelin/openzeppelin-contracts@4.3.2/contracts/utils/math/SafeMath.sol";
-import "@ganache/console.log/console.sol";
+import "../interfaces/INodeOperatorRegistry.sol";
 
-contract NodeOperatorRegistry {
+contract NodeOperatorRegistry is INodeOperatorRegistry {
     using SafeMath for uint256;
 
+    // this event exist for debugging purposes only
     event MTRLeafAdded(
         uint index,
         bytes32 value
@@ -20,16 +23,7 @@ contract NodeOperatorRegistry {
     bytes32[TREE_DEPTH] zero_hashes;
     bytes32[TREE_DEPTH] branch;
 
-    address public contractAdmin;
-
-    modifier onlyContractAdmin() {
-        require(msg.sender == contractAdmin, "AUTH_FAILED");
-        _;
-    }
-
     constructor(address _contractAdmin) {
-        contractAdmin = _contractAdmin;
-
         for (uint height = 0; height < TREE_DEPTH - 1; height++)
             zero_hashes[height + 1] = keccak256(abi.encodePacked(zero_hashes[height], zero_hashes[height]));
     }
@@ -57,7 +51,6 @@ contract NodeOperatorRegistry {
 
     function add_to_merkle_tree(bytes32 value) internal {
         // Add a single leaf to the Merkle tree (update a single `branch` node)
-        console.log(1);
         bytes32 node = value;
         key_count += 1;
         uint size = key_count;

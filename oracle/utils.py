@@ -95,11 +95,16 @@ class IntUtils:
     @classmethod
     def slice_into_bytes(cls, value: KeccakInput, size = 32) -> List[KeccakInput]:
         pass
+    @classmethod
+    def read_bytes_pair_into_int(cls, high: bytes, low: bytes) -> int:
+        return IntUtils.from_bytes(high + low, 'big', signed=False)
 
     @classmethod
     def read_pair_into_int(cls, high, low) -> int:
-        as_bytes = high.to_bytes(16, 'big', signed=False) + low.to_bytes(16, 'big', signed=False)
-        return IntUtils.from_bytes(as_bytes, 'big', signed=False)
+        return cls.read_bytes_pair_into_int(
+            high=high.to_bytes(16, 'big', signed=False),
+            low=low.to_bytes(16, 'big', signed=False)
+        )
 
     @classmethod
     def read_pair_into_hex_str(cls, high, low) -> HexStr:

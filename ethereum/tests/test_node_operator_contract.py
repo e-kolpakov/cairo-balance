@@ -1,7 +1,7 @@
 from brownie.test import given
 from hypothesis import strategies as st
 from strategies import pubkeys
-from oracle.utils import IntUtils
+from utils import IntUtils
 
 
 class TestNodeOperatorRegistryInitialState:

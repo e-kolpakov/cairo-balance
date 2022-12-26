@@ -1,5 +1,4 @@
 from starkware.cairo.bootloaders.generate_fact import get_program_output
-from starkware.cairo.common.hash_chain import compute_hash_chain
 from typing import List, TypeVar, Generic, Callable, Dict, Any
 
 import tempfile
@@ -7,6 +6,8 @@ import tempfile
 import logging
 import json
 import time
+
+from starkware.cairo.bootloaders.hash_program import compute_program_hash_chain
 from starkware.cairo.sharp.sharp_client import init_client
 
 import config
@@ -44,7 +45,7 @@ class CairoInterface(Generic[T]):
 
     @property
     def program_hash(self):
-        return compute_hash_chain(self.program)
+        return compute_program_hash_chain(self.program)
 
     def run(self, payload: T, store_input: str = None) -> List[int]:
         self.LOGGER.info("Serializing payload to json")
@@ -84,8 +85,7 @@ class CairoInterface(Generic[T]):
                 f"and fact '{fact_id}' is '{status}'."
             )
             if seconds > timeout:
-                message = f"Fact {fact_id} was not registered in {seconds} seconds. Status of job id '{job_id}' "
-                f"and fact '{fact_id}' is '{status}'."
+                message = f"Fact {fact_id} was not registered in {seconds} seconds. Status of job id '{job_id}' and fact '{fact_id}' is '{status}'."
                 raise TimeoutError(message)
             time.sleep(15)
             seconds += 15

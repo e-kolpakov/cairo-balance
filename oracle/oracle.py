@@ -26,7 +26,7 @@ class ProverPayloadSource:
 
 class Oracle:
     LOGGER = logging.getLogger(__name__ + ".Oracle")
-    def __init__(self, payload_source: ProverPayloadSource,  cairo_interface, contract: TVLContract, dry_run=False):
+    def __init__(self, payload_source: ProverPayloadSource, cairo_interface, contract: TVLContract, dry_run=False):
         self._payload_source = payload_source
         self._cairo_interface = cairo_interface
         self._contract = contract
@@ -74,7 +74,7 @@ class Oracle:
             return
 
         try:
-            self._cairo_interface.wait_until_fact_registered_and_valid(job_id, fact_id, timeout=300)
+            self._cairo_interface.wait_until_fact_registered_and_valid(job_id, fact_id, timeout=30)
         except TimeoutError as exc:
             self.LOGGER.exception("Waiting for the fact timed out")
             raise
