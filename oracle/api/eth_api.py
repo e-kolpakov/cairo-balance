@@ -57,10 +57,10 @@ class BeaconState:
     
     def __init__(self, validators):
         self.validators = validators
-        self._validator_lookup = {validator.pubkey: validator for validator in validators}
+        self._validator_lookup = {int(validator.pubkey, 16): validator for validator in validators}
 
     def find_validator(self, pubkey: HexStr) -> Optional[Validator]:
-        return self._validator_lookup.get(pubkey)
+        return self._validator_lookup.get(int(pubkey, 16))
 
     def _flatten(self) -> Iterator[KeccakInput]:
         """

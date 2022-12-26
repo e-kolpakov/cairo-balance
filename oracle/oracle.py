@@ -4,6 +4,7 @@ from typing import Optional
 from cairo import JobId, FactId
 from model import ProverPayload, ProverOutput
 
+
 class TVLContract:
     def update_tvl(self, prover_output: ProverOutput):
         raise NotImplementedError("Must be implemented in descendent class")
@@ -24,13 +25,19 @@ class ProverPayloadSource:
     def get_prover_payload(self) -> ProverPayload:
         raise NotImplementedError("Must be implemented in descendent class")
 
+
 class Oracle:
     LOGGER = logging.getLogger(__name__ + ".Oracle")
-    def __init__(self, payload_source: ProverPayloadSource, cairo_interface, contract: TVLContract, dry_run=False):
+
+    def __init__(
+            self, payload_source: ProverPayloadSource, cairo_interface, contract: TVLContract, dry_run=False,
+            wait_for_fact=True
+    ):
         self._payload_source = payload_source
         self._cairo_interface = cairo_interface
         self._contract = contract
         self._dry_run = dry_run
+        self._wait_for_fact = wait_for_fact
 
     def run_oracle(self) -> (ProverOutput, Optional[JobId], Optional[FactId]):
         payload = self._payload_source.get_prover_payload()
@@ -61,18 +68,18 @@ class Oracle:
         if self._dry_run:
             return None, None
 
-        self.LOGGER.info("Submitting the program to SHARP")
+        self.LOGGER.debug("Submitting the program to SHARP")
         job_id = self._cairo_interface.submit()
         fact_id = self._cairo_interface.get_fact()
 
         return job_id, fact_id
 
     def _wait_for_fact_registration(self, job_id: JobId, fact_id: FactId):
-        self.LOGGER.info("Submitting the program to SHARP")
-        if self._dry_run:
-            self.LOGGER.info("Dry-run: skipping submission")
+        if self._dry_run or not self._wait_for_fact:
+            self.LOGGER.debug("Dry-run: skipping fact registration")
             return
 
+        self.LOGGER.debug("Waiting for fact registration")
         try:
             self._cairo_interface.wait_until_fact_registered_and_valid(job_id, fact_id, timeout=30)
         except TimeoutError as exc:
@@ -80,11 +87,9 @@ class Oracle:
             raise
 
     def _update_tvl_contract(self, prover_output):
-        self.LOGGER.info("Updating on-chain TVL")
+        self.LOGGER.debug("Updating on-chain TVL")
         if self._dry_run:
-            self.LOGGER.info("Dry-run: skipping on-chain TVL update")
+            self.LOGGER.debug("Dry-run: skipping on-chain TVL update")
             return
 
         self._contract.update_tvl(prover_output)
-
-

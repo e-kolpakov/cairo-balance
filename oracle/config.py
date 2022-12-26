@@ -11,7 +11,10 @@ INTEGRATION_TESTS = os.path.join(PROJECT_ROOT, 'integration_test')
 with open(CONFIG_LOCATION) as json_file:
     raw_config = json.load(json_file)
 
-LOG_LEVEL = 'DEBUG'
+# DEBUG = True
+DEBUG = False
+
+LOG_LEVEL = 'DEBUG' if DEBUG else 'INFO'
 
 NOISY_LOGGERS = {
     'disk_cache.JsonDiskCache': 'INFO',
@@ -66,8 +69,6 @@ WEB3_CACHE_LOCATION = "./cache/web3"
 LIDO_CACHE_LOCATION = "./cache/lido"
 ETH2_CACHE_LOCATION = "./cache/eth2"
 USE_CACHE = True
-# DEBUG = True
-DEBUG = False
 
 class CairoApps:
     MERKLE_TREE = os.path.join(CAIRO_CODE_LOCATION, 'merkle_tree.cairo')

@@ -24,7 +24,7 @@ from brownie.network.transaction import TransactionReceipt
 from brownie import Wei
 
 LOGGER = logging.getLogger("main")
-DEBUG = True
+DEBUG = oracle_config.DEBUG
 
 
 class TVLOracleWrapper(TVLContract):
@@ -190,7 +190,12 @@ def main():
 
     chain_state = ControlledChainState(node_operator_registry, tvl_contract_wrapper)
     payload_source = ControlledProverPayloadSource(chain_state)
-    oracle = Oracle(payload_source, cairo_interface, tvl_contract_wrapper, dry_run=False)
+    oracle = Oracle(
+        payload_source, cairo_interface, tvl_contract_wrapper, dry_run=False,
+        # for some reason, when running "from brownie" interacting with cairo contract often (but not always) times out
+        # when waiting for the fact to register - but this rarely (if ever) happens "outside brownie"
+        wait_for_fact=False
+    )
 
     # generate "initial state"
     initial_validators = [gen_account() for _ in range(3)]
