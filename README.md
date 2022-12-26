@@ -56,7 +56,7 @@ The following integration tests can be helpful:
   equal between cairo implementation and python implementation.
 
 The following code directly impacts this:
-* `IntUtils.pubkey_to_keccak_input` - converts BeaconState to input to Merkle tree builder.
+* `IntUtils.pubkey_bytes_to_keccak_input` - converts BeaconState to input to Merkle tree builder.
 * `ProgressiveMerkleTreeBuilder._add_value` - enforces the assertion
 
 Note that currently used reference implementation and tests always use 32-byte values. If reference implementation

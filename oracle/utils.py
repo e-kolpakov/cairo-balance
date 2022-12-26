@@ -4,10 +4,11 @@ from dataclasses import asdict
 
 from datetime import date, datetime
 from eth_typing import HexStr
-from typing import Union, List, Literal
+from typing import Union, List, Literal, Iterable
 from keccak_utils import KeccakInput
 
 ByteEndianness = Literal['little', 'big']
+KECCAK_INPUT_LENGTH = 32
 
 class DateFormatter:
     @staticmethod
@@ -43,13 +44,21 @@ class AsDict:
 class BytesUtils:
     @classmethod
     def pad_to_32_multiple(cls, value: bytes, byteorder: ByteEndianness = 'big'):
-        next_32_multiple = 32 * ceil(32 / len(value))
-        pad_bytes = next_32_multiple - len(value)
-        padding = b'\x00' * pad_bytes
+        return cls.pad_to_multiple(value, 32, byteorder)
+    @classmethod
+    def pad_to_multiple(cls, value: bytes, multiple: int, byteorder: ByteEndianness = 'big'):
+        unaligned = len(value) % multiple
+        padding_length = multiple - unaligned if unaligned > 0 else 0
+        padding = b'\x00' * padding_length
         if byteorder == 'big':
             return padding + value
         else:
             return value + padding
+    @classmethod
+    def chunks(cls, value: bytes, chunk_length: int, with_padding=False, byteorder: ByteEndianness = 'big') -> Iterable[bytes]:
+        value_to_split = value if not with_padding else cls.pad_to_multiple(value, chunk_length, byteorder)
+        for idx in range(0, len(value_to_split), chunk_length):
+            yield value_to_split[idx:idx+chunk_length]
 
 
 class IntUtils:
@@ -103,10 +112,11 @@ class IntUtils:
         See "Merkle tree leaves content" section in readme for more details
         """
         pubkey_bytes = IntUtils.to_keccak_input(pubkey, size_hint=48)
+        return cls.pubkey_bytes_to_keccak_input(pubkey_bytes)
+
+    @classmethod
+    def pubkey_bytes_to_keccak_input(cls, value: bytes) -> List[KeccakInput]:
         # "Straightforward" implementation - no limitations on leaf content
-        # return pubkey_bytes
+        # return value
         # "shortcut" implementation - only 32-byte values are allowed
-        return [
-            pubkey_bytes[:32],
-            pubkey_bytes[32:]
-        ]
+        return list(BytesUtils.chunks(value, KECCAK_INPUT_LENGTH, with_padding=True, byteorder='big'))

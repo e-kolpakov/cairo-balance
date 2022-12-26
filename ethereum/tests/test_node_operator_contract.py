@@ -27,8 +27,7 @@ class TestNodeOperatorRegistry:
     def test_zerohashes(self, node_operator_registry, progressive_merkle_tree_builder_mgr, keys):
         with progressive_merkle_tree_builder_mgr as tree_builder:
             for key_bytes in keys:
-                int_key = IntUtils.from_bytes(key_bytes, 'big', signed=False)
-                tree_builder.add_values(IntUtils.pubkey_to_keccak_input(int_key))
+                tree_builder.add_values(IntUtils.pubkey_bytes_to_keccak_input(key_bytes))
             expected = tree_builder.build().hash_hex()
         for key in keys:
             node_operator_registry.add_key(key)
