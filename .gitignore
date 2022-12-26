@@ -9,3 +9,4 @@ __pycache__
 .history
 contracts/build/
 contracts/reports/
+/node_modules/
