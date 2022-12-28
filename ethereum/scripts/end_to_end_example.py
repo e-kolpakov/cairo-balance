@@ -21,6 +21,7 @@ from utils import IntUtils
 
 from brownie import accounts, NodeOperatorRegistry, TVLOracle, MockFactRegistry
 from brownie.network.transaction import TransactionReceipt
+from brownie.network.account import Account
 from brownie import Wei
 
 LOGGER = logging.getLogger("main")
@@ -29,9 +30,10 @@ DEBUG = oracle_config.DEBUG
 
 class TVLOracleWrapper(TVLContract):
     LOGGER = logging.getLogger("main.TVLOracleWrapper")
-    def __init__(self, owner, contract: TVLOracle):
+    def __init__(self, owner: Account, oracle_operator: Account, contract: TVLOracle):
         self._owner = owner
         self._contract = contract
+        self._oracle_operator = oracle_operator
 
     def get_tlv(self):
         return self._contract.get_total_value_locked()
@@ -53,12 +55,13 @@ class TVLOracleWrapper(TVLContract):
         self.LOGGER.debug(f"Transaction events:\n{events_repr}")
 
     def update_tvl(self, prover_output: ProverOutput):
+        tx_info = {"from": self._oracle_operator}
         self.LOGGER.debug(f"Updating on-chain TVL\n{prover_output}")
-        tx = self._contract.update_state(prover_output.raw_output)
+        tx = self._contract.update_state(prover_output.raw_output, tx_info)
         self._wait_for_transaction(tx)
 
-    def update_expected_beacon_state_mtr(self, beacon_state: BeaconState):
-        deploy_tx_info = {"from": self._owner}
+    def update_expected_beacon_state_mtr(self, beacon_state: BeaconState, sender: Account):
+        deploy_tx_info = {"from": sender}
         expected_mtr = beacon_state.merkle_tree_root().hash()
 
         self.LOGGER.debug(f"Updating on-chain beacon state MTR: {IntUtils.hex_str_from_bytes(expected_mtr, 'big')}")
@@ -67,12 +70,13 @@ class TVLOracleWrapper(TVLContract):
 
 
 class ControlledChainState:
-    def __init__(self, node_operator_registry: NodeOperatorRegistry, tvl_oracle: TVLOracleWrapper):
+    def __init__(self, node_operator_registry: NodeOperatorRegistry, tvl_oracle: TVLOracleWrapper, tlv_oracle_owner):
         self._all_validators = OrderedDict()
         self._lido_validator_pubkeys = []
         self._node_operator_registry = node_operator_registry
         self.tvl_oracle = tvl_oracle
         self._added_validator_keys = []
+        self._owner = tlv_oracle_owner
 
     def upsert_validator(self, key: HexStr, balance: int):
         self._all_validators[key] = balance
@@ -96,12 +100,13 @@ class ControlledChainState:
 
     def sync_beacon_state_mtr(self):
         # remove this when BeaconState mtr is available on-chain
-        self.tvl_oracle.update_expected_beacon_state_mtr(self.beacon_state)
+        self.tvl_oracle.update_expected_beacon_state_mtr(self.beacon_state, self._owner)
 
     def sync_validators(self):
+        tx_info = {"from": self._owner}
         for key in self._added_validator_keys:
             key_bytes = int(key, 16).to_bytes(48, 'big', signed=False)
-            self._node_operator_registry.add_key(key).wait(1)
+            self._node_operator_registry.add_key(key, tx_info).wait(1)
         self._added_validator_keys = []
 
     @property
@@ -178,6 +183,7 @@ def main():
     cairo_bin_dir = ""
 
     owner = accounts[0]
+    oracle_operator = accounts[1]
     cairo_interface = CairoInterface(
         cairo_bin_dir, oracle_config.WEB3_GOERLI_API, oracle_config.CairoApps.TLV_PROVER,
         serializer=lambda payload: payload.to_cairo(),
@@ -186,9 +192,9 @@ def main():
 
     node_operator_registry, fact_registry, tvl_oracle = deploy_contracts(owner, program_hash)
 
-    tvl_contract_wrapper = TVLOracleWrapper(owner, tvl_oracle)
+    tvl_contract_wrapper = TVLOracleWrapper(owner, oracle_operator, tvl_oracle)
 
-    chain_state = ControlledChainState(node_operator_registry, tvl_contract_wrapper)
+    chain_state = ControlledChainState(node_operator_registry, tvl_contract_wrapper, owner)
     payload_source = ControlledProverPayloadSource(chain_state)
     oracle = Oracle(
         payload_source, cairo_interface, tvl_contract_wrapper, dry_run=False,

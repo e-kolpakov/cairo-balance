@@ -1,1 +1,0 @@
-cat brownie_python_deps.txt | xargs pipx inject eth-brownie

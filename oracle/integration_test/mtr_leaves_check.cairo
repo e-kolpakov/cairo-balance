@@ -9,26 +9,26 @@ from model import BeaconState, Validator, Eth2ValidatorKey, read_beacon_state, s
 from merkle_tree import branch_by_branch_with_start_and_end
 
 func serialize_array{output_ptr : felt*}(first: Uint256*, last: Uint256*) {
-    if (1) {
-        return() 
+    if (first == last) {
+        return();
     }
-    serialize_uint256([first])
-    serialize_word('separator')
-    return serialize_array(first + Uint256.SIZE, last)
+    serialize_uint256([first]);
+    serialize_word('separator');
+    return serialize_array(first + Uint256.SIZE, last);
 }
 
 func main{output_ptr : felt*, range_check_ptr, bitwise_ptr: BitwiseBuiltin*}() {
-    alloc_locals
+    alloc_locals;
 
     %{
-        def split_uint256(value) {
+        def split_uint256(value):
             as_bytes = value.to_bytes(32, 'big', signed=False)
             return (
                 int.from_bytes(as_bytes[:16], 'big', signed=False),
                 int.from_bytes(as_bytes[16:32], 'big', signed=False),
             )
 
-        def split_uint384(value) {
+        def split_uint384(value):
             as_bytes = value.to_bytes(64, 'big', signed=False)
             return (
                 int.from_bytes(as_bytes[:16], 'big', signed=False),
@@ -42,12 +42,12 @@ func main{output_ptr : felt*, range_check_ptr, bitwise_ptr: BitwiseBuiltin*}() {
         UINT_LOW_OFFSET = ids.Uint256.low
         UINT_HIGH_OFFSET = ids.Uint256.high
 
-        def read_uint256_to_memory(uint256, memory_offset) {
+        def read_uint256_to_memory(uint256, memory_offset):
             high, low = split_uint256(uint256)
             memory[memory_offset + UINT_HIGH_OFFSET] = high
             memory[memory_offset + UINT_LOW_OFFSET] = low
 
-        def read_validator_key_to_memory(validator_key, memory_offset) {
+        def read_validator_key_to_memory(validator_key, memory_offset):
             (hh, hl, lh, ll) = split_uint384(validator_key)
             memory[memory_offset + VALIDATOR_KEY_HIGH + UINT_HIGH_OFFSET] = hh
             memory[memory_offset + VALIDATOR_KEY_HIGH + UINT_LOW_OFFSET] = hl
@@ -57,12 +57,12 @@ func main{output_ptr : felt*, range_check_ptr, bitwise_ptr: BitwiseBuiltin*}() {
         beacon_state_input = program_input['beacon_state']
     %}
 
-    let (beacon_state: BeaconState) = read_beacon_state()
+    let (beacon_state: BeaconState*) = read_beacon_state();
 
 
-    let (local beacon_state_mtr_input_start: Uint256*) = alloc()
-    let (beacon_state_mtr_input_end: Uint256*) = flatten_beacon_state(beacon_state, beacon_state_mtr_input_start)
-    serialize_array(beacon_state_mtr_input_start, beacon_state_mtr_input_end)
+    let (local beacon_state_mtr_input_start: Uint256*) = alloc();
+    let (beacon_state_mtr_input_end: Uint256*) = flatten_beacon_state([beacon_state], beacon_state_mtr_input_start);
+    serialize_array(beacon_state_mtr_input_start, beacon_state_mtr_input_end);
     
-    return ()
+    return ();
 }

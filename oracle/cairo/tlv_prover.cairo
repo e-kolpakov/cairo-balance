@@ -9,25 +9,26 @@ from starkware.cairo.common.registers import get_fp_and_pc
 from model import BeaconState, ValidatorKeys, Validator, Eth2ValidatorKey, serialize_validator_key, serialize_uint256, read_beacon_state, read_validator_keys, flatten_beacon_state, flatten_validator_keys, assert_key_equal
 from merkle_tree import branch_by_branch_with_start_and_end
 
-func serialize_input{output_ptr : felt*}(beacon_state: BeaconState, validator_keys: ValidatorKeys) {
-    serialize_word('beacon_state');  //  30452092374078856069631800421
-    serialize_word(beacon_state.validators_count);
-    serialize_validator_key(beacon_state.validators[0].key);
-    serialize_word(beacon_state.validators[0].balance);
-    serialize_validator_key(beacon_state.validators[1].key);
-    serialize_word(beacon_state.validators[1].balance);
-    serialize_validator_key(beacon_state.validators[2].key);
-    serialize_word(beacon_state.validators[2].balance);
-    //  serialize_uint256(beacon_state.merkle_tree_root)
+// This is quite handy for debugging, but not part of the final solution, so commenting out
+// func serialize_input{output_ptr : felt*}(beacon_state: BeaconState, validator_keys: ValidatorKeys) {
+//     serialize_word('beacon_state');  //  30452092374078856069631800421
+//     serialize_word(beacon_state.validators_count);
+//     serialize_validator_key(beacon_state.validators[0].key);
+//     serialize_word(beacon_state.validators[0].balance);
+//     serialize_validator_key(beacon_state.validators[1].key);
+//     serialize_word(beacon_state.validators[1].balance);
+//     serialize_validator_key(beacon_state.validators[2].key);
+//     serialize_word(beacon_state.validators[2].balance);
+//     //  serialize_uint256(beacon_state.merkle_tree_root)
 
-    serialize_word('validator_keys');  //  2401043016787086888088334347106675
-    serialize_word(validator_keys.keys_count);
-    serialize_validator_key(validator_keys.keys[0]);
-    serialize_validator_key(validator_keys.keys[1]);
-    //  serialize_uint256(validator_keys.merkle_tree_root)
-    serialize_word('end');  //  6647396
-    return ();
-}
+//     serialize_word('validator_keys');  //  2401043016787086888088334347106675
+//     serialize_word(validator_keys.keys_count);
+//     serialize_validator_key(validator_keys.keys[0]);
+//     serialize_validator_key(validator_keys.keys[1]);
+//     //  serialize_uint256(validator_keys.merkle_tree_root)
+//     serialize_word('end');  //  6647396
+//     return ();
+// }
 
 func calc_total_locked_value(beacon_state: BeaconState*, validator_keys: ValidatorKeys*) -> (res: felt) {
     //  General idea here:
@@ -102,7 +103,11 @@ func find_balance(validator_key: Eth2ValidatorKey*, beacon_state: BeaconState*) 
         ids.index = validator_lookup[validator_key_value]
     %}
     let found_validator: Validator = beacon_state.validators[index];
-    assert_key_equal([validator_key], found_validator.key); //  enforces soundness
+
+    //  enforces soundness - checks that the found validator indeed has the key we were looking for
+    assert_key_equal([validator_key], found_validator.key);
+
+
     return (res=found_validator.balance);
 }
 

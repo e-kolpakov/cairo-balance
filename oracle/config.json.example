@@ -1,0 +1,8 @@
+# rename to config.json
+
+{
+  "web3_api": "https://mainnet.infura.io/v3/YOUR_WEB3_ID",
+  "web3_goerli_api": "https://goerli.infura.io/v3/YOUR_WEB3_ID",
+  "eth2_api": "https://YOUR_KEY_AND_SECRET@eth2-beacon-mainnet.infura.io",
+  "eth2_prater_api": "https://YOUR_KEY_AND_SECRET@eth2-beacon-prater.infura.io"
+}
